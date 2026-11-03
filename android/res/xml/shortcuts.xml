@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="inbox" android:enabled="true" android:icon="@drawable/sc_inbox" android:shortcutShortLabel="@string/sc_inbox">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="io.github.tvspk.memochat"
+            android:targetClass="io.github.tvspk.memochat.MainActivity" android:data="memochat:open/inbox" />
+    </shortcut>
+    <shortcut android:shortcutId="work" android:enabled="true" android:icon="@drawable/sc_work" android:shortcutShortLabel="@string/sc_work">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="io.github.tvspk.memochat"
+            android:targetClass="io.github.tvspk.memochat.MainActivity" android:data="memochat:open/work" />
+    </shortcut>
+    <shortcut android:shortcutId="search" android:enabled="true" android:icon="@drawable/sc_search" android:shortcutShortLabel="@string/sc_search">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="io.github.tvspk.memochat"
+            android:targetClass="io.github.tvspk.memochat.MainActivity" android:data="memochat:open/search" />
+    </shortcut>
+</shortcuts>

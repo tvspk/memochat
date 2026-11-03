@@ -210,6 +210,16 @@ Object.assign(T.en,{
   filesUnavailable:'Files can’t be stored in this browser.', fileSaveFail:'Couldn’t save the file. Is the device full?', fileMissing:'This file is no longer available.',
   saveToDevice:'Save to device', openIn:'Open in another app…', close:'Close', storageUsed:s=>`Used on this device: ${s}`,
   backupWorking:'Preparing the backup…', restoreWorking:(i,n)=>`Restoring files ${i} / ${n}…`, backupTooLarge:'The backup is larger than 4 GB, which isn’t supported yet.',
+  weeklyT:'Weekly backup', weeklySub:f=>f?`Time for this week’s backup. It will be saved to “${f}”.`:'Time for this week’s backup. Choose a folder for your backups first (ideally one that Google Drive keeps in sync).',
+  tomorrow2:'Tomorrow', folderNeeded:'No folder chosen — the backup was not made.', folderLost:'MemoChat can no longer write to the backup folder. Choose it again.',
+  weeklyDone:f=>`Backup saved to “${f}”.`, weeklySection:'Weekly backup', backupFolder:'Backup folder', noFolder:'not chosen', changeFolder:'Choose folder',
+  encryptWeekly:'Encrypt with a password', encOn:'On', encOff:'Off', setPwT:'Password for weekly backups', setPwSub:'MemoChat keeps it in the phone’s secure key store, so you won’t have to type it. Write it down too: without it the backups can’t be opened.',
+  backupToFolder:'Back up now to the folder', keepN:'The 4 newest backups are kept; older ones are deleted.',
+  notifSection:'Reminders', notifOn:'Notifications are on', notifOff:'Notifications are off', notifAllow:'Allow', notifSettings:'Settings',
+  apkUpdate:v=>`MemoChat ${v} is available.`, download:'Download', openApp:'Open in app…', shareTo:'Share…',
+  backupDueT:'Time for the weekly backup', backupDueSub:'Open MemoChat and confirm the backup.',
+  aboutApk:'Your notes are stored only in this app on this phone. Nothing is uploaded anywhere — the weekly backup keeps a copy in the folder you choose.',
+  writing:'Saving…',
   backupFailed:'The backup failed.', backupDamaged:'The backup file is damaged. Nothing was changed.', backupSub:'Notes and attachments (ZIP), optional password', attachments:'Attachments'
 });
 Object.assign(T.cs,{
@@ -222,6 +232,16 @@ Object.assign(T.cs,{
   filesUnavailable:'V tomto prohlížeči nejde ukládat soubory.', fileSaveFail:'Soubor se nepodařilo uložit. Není plné úložiště?', fileMissing:'Tento soubor už není k dispozici.',
   saveToDevice:'Uložit do zařízení', openIn:'Otevřít v jiné aplikaci…', close:'Zavřít', storageUsed:s=>`Zabráno v zařízení: ${s}`,
   backupWorking:'Připravuji zálohu…', restoreWorking:(i,n)=>`Obnovuji soubory ${i} / ${n}…`, backupTooLarge:'Záloha je větší než 4 GB, to zatím není podporováno.',
+  weeklyT:'Týdenní záloha', weeklySub:f=>f?`Je čas na týdenní zálohu. Uloží se do složky „${f}“.`:'Je čas na týdenní zálohu. Nejdřív vyber složku pro zálohy (ideálně takovou, kterou synchronizuje Google Disk).',
+  tomorrow2:'Zítra', folderNeeded:'Nebyla vybraná složka, záloha se neudělala.', folderLost:'MemoChat už nemůže zapisovat do složky se zálohami. Vyber ji znovu.',
+  weeklyDone:f=>`Záloha uložená do složky „${f}“.`, weeklySection:'Týdenní záloha', backupFolder:'Složka pro zálohy', noFolder:'nevybraná', changeFolder:'Vybrat složku',
+  encryptWeekly:'Šifrovat heslem', encOn:'Zapnuto', encOff:'Vypnuto', setPwT:'Heslo pro týdenní zálohy', setPwSub:'MemoChat ho uschová v bezpečném úložišti klíčů telefonu, takže ho nebudeš muset psát. Zapiš si ho i jinam: bez něj zálohy nepůjde otevřít.',
+  backupToFolder:'Zálohovat teď do složky', keepN:'Uchovávají se 4 nejnovější zálohy, starší se mažou.',
+  notifSection:'Upozornění', notifOn:'Upozornění jsou zapnutá', notifOff:'Upozornění jsou vypnutá', notifAllow:'Povolit', notifSettings:'Nastavení',
+  apkUpdate:v=>`Je dostupná nová verze MemoChatu ${v}.`, download:'Stáhnout', openApp:'Otevřít v aplikaci…', shareTo:'Sdílet…',
+  backupDueT:'Čas na týdenní zálohu', backupDueSub:'Otevři MemoChat a potvrď zálohu.',
+  aboutApk:'Poznámky jsou uložené jen v této aplikaci v tomto telefonu. Nikam se nenahrávají — týdenní záloha drží kopii ve složce, kterou si vybereš.',
+  writing:'Ukládám…',
   backupFailed:'Zálohu se nepodařilo vytvořit.', backupDamaged:'Soubor zálohy je poškozený. Nic se nezměnilo.', backupSub:'Poznámky i přílohy (ZIP), volitelně s heslem', attachments:'Přílohy'
 });
 function t(k,...a){ const L=T[S.settings.lang]||T.en; const v=L[k]!==undefined?L[k]:T.en[k]; return typeof v==='function'?v(...a):v; }
@@ -247,9 +267,31 @@ const DAY = 86400000;
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-'+Date.now().toString(36)+Math.random().toString(36).slice(2));
 
 let S = {threads:[],notes:[],settings:{}};
+
+/* ---------- Android app (APK): bridge to the native side ----------
+   In the APK, window.MemoChatNative is provided by MainActivity.java. In a browser it is absent
+   and everything falls back to the web behaviour. */
+const NATIVE = (typeof window.MemoChatNative==='object' && window.MemoChatNative) || null;
+const nativeCbs = new Map(); let nativeSeq = 0;
+window.__mcNativeResolve = (id, v) => { const f=nativeCbs.get(id); if(f){ nativeCbs.delete(id); f(v); } };
+// calls an asynchronous native method; the first argument is a callback id that Java resolves later
+function nativeAsync(method, ...args){
+  return new Promise(res=>{ const id='c'+(++nativeSeq); nativeCbs.set(id,res); try{ NATIVE[method](id, ...args); }catch(e){ nativeCbs.delete(id); res(null); } });
+}
+// streams a Blob to a native output (token from saveAs / folderWrite / cacheWrite) in base64 pieces
+async function nativeWrite(token, blob){
+  const STEP=768*1024;
+  for(let off=0; off<blob.size; off+=STEP){
+    const u8=new Uint8Array(await blob.slice(off, off+STEP).arrayBuffer());
+    if(!NATIVE.write(token, b64(u8))) throw new Error('write');
+  }
+  if(!NATIVE.close(token)) throw new Error('close');
+}
+function nativeInfo(){ try{ return JSON.parse(NATIVE.info()); }catch(e){ return {}; } }
+function b64(u8){ let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(s); }
 const DEFAULT_SETTINGS = {theme:null, lang:'en', lastBackup:null, nudgeSnooze:null, recent:[], welcome:false};
 
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 const DEFAULT_THREADS = [
   ['Inbox','📥','gray',{system:'inbox',pinned:true}],['Work','💼','blue'],['Home','🏠','purple'],['Shopping','🛒','pink'],['Ideas','💡','indigo'],
   ['Korean','🇰🇷','teal'],['Welsh','🏴󠁧󠁢󠁷󠁬󠁳󠁿','teal'],['Claude','✳️','slate'],['Copilot','🧭','slate'],['AI general','🤖','slate'],
@@ -290,9 +332,9 @@ function sanitizeData(data){
   const threads = (Array.isArray(data.threads)?data.threads:[]).filter(x=>x && typeof x==='object').map(x=>({
     id:fixId(x.id), name:str(x.name,200)||'?', emoji:x.emoji?str(x.emoji,16):null, color:colorOf(x.color)?x.color:null,
     system:x.system==='inbox'?'inbox':undefined, pinned:!!x.pinned, pinnedAt:num(x.pinnedAt), archived:!!x.archived, hideDone:!!x.hideDone,
-    createdAt:num(x.createdAt,Date.now()), lastActivity:num(x.lastActivity,Date.now()), deletedAt:num(x.deletedAt)
+    createdAt:num(x.createdAt,Date.now()), lastActivity:num(x.lastActivity,Date.now()), deletedAt:num(x.deletedAt), updatedAt:num(x.updatedAt)
   }));
-  threads.forEach(x=>{ if(!x.system) delete x.system; if(x.deletedAt===null) delete x.deletedAt; });
+  threads.forEach(x=>{ if(!x.system) delete x.system; if(x.deletedAt===null) delete x.deletedAt; if(x.updatedAt===null) delete x.updatedAt; });
   const tids = new Set(threads.map(x=>x.id));
   const notes = (Array.isArray(data.notes)?data.notes:[]).filter(n=>n && typeof n==='object').map(n=>{
     const o = {
@@ -303,10 +345,11 @@ function sanitizeData(data){
       createdAt:num(n.createdAt,Date.now()), editedAt:num(n.editedAt),
       history:(Array.isArray(n.history)?n.history:[]).filter(v=>v&&typeof v==='object').map(v=>({type:v.type==='list'?'list':'text', text:str(v.text), title:str(v.title,2000),
         items:(Array.isArray(v.items)?v.items:[]).filter(i=>i&&typeof i==='object').map(i=>({id:fixId(i.id), text:str(i.text,5000), done:!!i.done})), at:num(v.at,Date.now())})),
-      deletedAt:num(n.deletedAt), due:cleanDue(n.due),
+      deletedAt:num(n.deletedAt), updatedAt:num(n.updatedAt), due:cleanDue(n.due),
       attachments:(Array.isArray(n.attachments)?n.attachments:[]).filter(a=>a && typeof a==='object' && typeof a.id==='string' && RE_ID.test(a.id)).map(a=>({
         id:a.id, name:cleanName(a.name)||'file', type:cleanType(a.type), size:num(a.size,0), thumb:(typeof a.thumb==='string' && RE_PHOTO.test(a.thumb)) ? a.thumb : null }))
     };
+    if(o.updatedAt===null) delete o.updatedAt;
     if(num(n.remindFired)!==null) o.remindFired = n.remindFired;
     if(n.cal && typeof n.cal==='object' && RE_DATE.test(n.cal.date||'')) o.cal = {date:n.cal.date, time:RE_TIME.test(n.cal.time||'')?n.cal.time:null};
     return o;
@@ -314,7 +357,8 @@ function sanitizeData(data){
   const s = (data.settings && typeof data.settings==='object') ? data.settings : {};
   const settings = {
     theme:['light','dark'].includes(s.theme)?s.theme:null, lang:s.lang==='cs'?'cs':'en', lastBackup:num(s.lastBackup), nudgeSnooze:num(s.nudgeSnooze),
-    recent:(Array.isArray(s.recent)?s.recent:[]).filter(x=>tids.has(x)).slice(0,5), kbOffset:num(s.kbOffset), kbHint:!!s.kbHint, welcome:!!s.welcome
+    recent:(Array.isArray(s.recent)?s.recent:[]).filter(x=>tids.has(x)).slice(0,5), kbOffset:num(s.kbOffset), kbHint:!!s.kbHint, welcome:!!s.welcome,
+    backupEncrypt:!!s.backupEncrypt, backupSnooze:num(s.backupSnooze), notifAsked:!!s.notifAsked, updCheck:num(s.updCheck)
   };
   return {threads, notes, settings};
 }
@@ -363,7 +407,21 @@ const Store = {
   }
 };
 let saveTimer=null;
-function persist(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>Store.save(S),250); }
+function persist(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>{ stampChanges(); Store.save(S); nativeAlarms(); },250); }
+/* every change to a thread or a note sets its updatedAt (used to merge devices when sync arrives);
+   compares a light signature of each item with the one from the last save */
+const lastSig = new Map(); let sigReady=false;
+const sigOf = x => JSON.stringify(x, (k,v)=> (k==='updatedAt'||k==='history'||k==='thumb'||k==='photo'||k==='remindFired') ? undefined : v);
+function stampChanges(){
+  const now=Date.now();
+  for(const x of S.threads.concat(S.notes)){
+    const sig=sigOf(x), prev=lastSig.get(x.id);
+    if(sigReady && prev!==sig) x.updatedAt=now;
+    else if(!x.updatedAt) x.updatedAt = x.editedAt || x.createdAt || now;
+    lastSig.set(x.id, sig);
+  }
+  sigReady=true;
+}
 function commit(){ persist(); render(); }
 
 /* =========================================================
@@ -439,7 +497,8 @@ function avatar(th, cls='lg'){
   return `<div class="avatar ${cls}" style="background:${bg}">${inner}</div>`;
 }
 function effTheme(){ return S.settings.theme || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'); }
-function applyTheme(){ const th=effTheme(); document.documentElement.dataset.theme=th; document.documentElement.lang=S.settings.lang; const m=$('meta[name=theme-color]'); if(m) m.content = th==='dark'?'#223E68':'#2B4C7E'; }
+function applyTheme(){ const th=effTheme(); document.documentElement.dataset.theme=th; document.documentElement.lang=S.settings.lang; const m=$('meta[name=theme-color]'); if(m) m.content = th==='dark'?'#223E68':'#2B4C7E';
+  if(NATIVE) try{ NATIVE.setBars(th==='dark'?'#223E68':'#2B4C7E', th==='dark'?'#111A2E':'#EFE5CC', th==='dark'); }catch(e){} }
 function themeBtn(){ const dark=effTheme()==='dark'; return `<button class="ib" data-act="toggle-theme" title="${dark?t('light'):t('dark')}" aria-label="${dark?t('light'):t('dark')}">${dark?I.sun:I.moon}</button>`; }
 function bumpActivity(tid){ const th=thread(tid); if(th) th.lastActivity=Date.now(); }
 /* ---------- deadlines ---------- */
@@ -488,10 +547,16 @@ const ui = {
   search:{q:'', scope:null, pri:new Set(), done:true, from:null},
 };
 let navDepth = 0;
-function pushNav(){ try{ history.pushState({mc:navDepth+1},''); navDepth++; }catch(e){} }
+function pushNav(){ if(NATIVE) return; try{ history.pushState({mc:navDepth+1},''); navDepth++; }catch(e){} }
 // on-screen back never depends on browser history (the Claude app frame may ignore it)
 function goBack(){ handleBack(); }
 window.addEventListener('popstate',()=>{ navDepth=Math.max(0,navDepth-1); handleBack(); });
+// Android back button in the APK: true = handled inside the app, false = leave the app
+window.__mcBack = () => {
+  if(overlays.length || ui.selecting || (!isWide() && ui.showThread) || ui.left!=='list'){ handleBack(); return true; }
+  if(ui.comp.editing){ cancelEdit(); return true; }
+  return false;
+};
 function handleBack(){
   if(closeTopOverlay()) return;
   if(ui.selecting){ exitSelect(); return; }
@@ -556,6 +621,7 @@ function renderList(){
     <button class="fab" data-act="new-thread" aria-label="${t('newThread')}" title="${t('newThread')}">${sv('<path d="M12 5v14M5 12h14"/>',24,2.4)}</button>`;
 }
 function needsNudge(){
+  if(NATIVE) return false;
   const s=S.settings, now=Date.now();
   if(s.nudgeSnooze && now - s.nudgeSnooze < 7*DAY) return false;
   return !s.lastBackup || now - s.lastBackup > 7*DAY;
@@ -643,9 +709,10 @@ function renderSettings(){
       <button class="it" data-act="import"><span class="ic">${I.upload}</span><div class="grow">${t('restoreFile')}<div class="small">${t('restoreSub')}</div></div></button>
       <button class="it" data-act="export-md"><span class="ic">${I.doc}</span><div class="grow">${t('exportMd')}<div class="small">${t('exportMdSub')}</div></div></button>
     </div>
+    ${NATIVE ? nativeSettingsHTML() : ''}
     <div class="grp"><div class="it"><div class="grow small" style="margin:0" id="stUse">&nbsp;</div></div></div>
     <div class="section-h">${t('about')}</div>
-    <div class="grp"><div class="it"><div class="grow small" style="margin:0">${t('aboutText')}<br>${t('version', APP_VERSION)}</div></div></div>
+    <div class="grp"><div class="it"><div class="grow small" style="margin:0">${NATIVE?t('aboutApk'):t('aboutText')}<br>${t('version', NATIVE ? (nativeInfo().versionName||APP_VERSION) : APP_VERSION)}</div></div></div>
   </div>`;
   try{ navigator.storage.estimate().then(e=>{ const el=$('#stUse'); if(el) el.textContent=t('storageUsed', fmtSize(e.usage||0)); }).catch(()=>{}); }catch(e){}
 }
@@ -1265,7 +1332,7 @@ function applyDue(target, due){
   const prev = target==='comp' ? ui.comp.due : (note(target)||{}).due;
   if(due && prev && prev.remind && (prev.remind==='none' || typeof prev.remind==='object') && due.remind===undefined) due.remind=prev.remind;
   if(target==='comp'){ ui.comp.due=due; renderComposer(false); const i=$('#cInput'); i&&i.focus(); return; }
-  const n=note(target); if(!n) return; n.due=due; delete n.remindFired; commit();
+  const n=note(target); if(!n) return; n.due=due; delete n.remindFired; commit(); if(due) askNotifOnce();
   snack(due?t('dateSet',dueLabel(due)):t('dateRemoved'));
   calCheck(n,'change');
 }
@@ -1360,7 +1427,7 @@ function checkReminders(){
   dueNotes().forEach(n=>{
     if(n.done) return;
     const r=remindTs(n.due); if(!r) return;
-    if(now>=r && now-r<12*3600000 && n.remindFired!==r && !alerted.has(n.id+'@'+r)){
+    if(!NATIVE && now>=r && now-r<12*3600000 && n.remindFired!==r && !alerted.has(n.id+'@'+r)){
       alerted.add(n.id+'@'+r); n.remindFired=r; persist();
       const s=dueStart(n.due); const when = dueLabel(n.due) + (n.due.time && s>now ? ' ('+relIn(s-now)+')' : '');
       snack(t('remindAlert', noteSnippet(n), when), t('open'), ()=>openThread(n.threadId,{flash:[n.id]}), 20000);
@@ -1441,13 +1508,19 @@ async function openAtt(nid, aid){
   if(IMG_TYPES.test(a.type) || /^(video|audio)\//.test(a.type)) return mediaViewer(typed, a);
   fileMenu(typed, a);
 }
-function canShareFile(file){ try{ return !!(navigator.canShare && navigator.canShare({files:[file]})); }catch(e){ return false; } }
+function canShareFile(file){ if(NATIVE) return true; try{ return !!(navigator.canShare && navigator.canShare({files:[file]})); }catch(e){ return false; } }
+async function nativeOpenFile(blob, a, mode){
+  const tok=NATIVE.cacheWrite(a.name); if(!tok){ snack(t('copyFail')); return; }
+  try{ await nativeWrite(tok, blob); NATIVE.openCached(tok, a.type, mode); }catch(e){ snack(t('copyFail')); }
+}
 async function shareAtt(blob, a){
+  if(NATIVE) return nativeOpenFile(blob, a, 'send');
   const file=new File([blob], a.name, {type:a.type});
   try{ await navigator.share({files:[file], title:a.name}); }catch(e){ if(e && e.name!=='AbortError') snack(t('copyFail')); }
 }
 function fileMenu(blob, a){
   const items=[{icon:I.download, label:t('saveToDevice'), fn:()=>saveFile(a.name, blob)}];
+  if(NATIVE){ items.push({icon:I.doc, label:t('openApp'), fn:()=>nativeOpenFile(blob,a,'view')}, {icon:I.share, label:t('shareTo'), fn:()=>nativeOpenFile(blob,a,'send')}); return sheet(a.name, items, fmtSize(a.size)+' · '+a.type); }
   if(canShareFile(new File([blob], a.name, {type:a.type}))) items.push({icon:I.share, label:t('openIn'), fn:()=>shareAtt(blob,a)});
   sheet(a.name, items, fmtSize(a.size)+' · '+a.type);
 }
@@ -1494,7 +1567,6 @@ function viewPhoto(src){ if(typeof src!=='string' || !RE_PHOTO.test(src)) return
 /* =========================================================
    Backup / restore / export
    ========================================================= */
-const b64 = u8 => { let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(s); };
 const unb64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
 async function deriveKey(pw, salt, iter){ const base=await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']); return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:iter, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']); }
 /* ---------- Backup format 2: a ZIP file (stored, no compression) ----------
@@ -1607,6 +1679,15 @@ async function makeBackup(pw){
   return zip.finish();
 }
 async function saveFile(filename, content, onSaved){
+  if(NATIVE){
+    const mime = content instanceof Blob && content.type ? content.type : filename.endsWith('.zip') ? 'application/zip' : filename.endsWith('.md') ? 'text/markdown' : filename.endsWith('.json') ? 'application/json' : 'application/octet-stream';
+    const blob = content instanceof Blob ? content : new Blob([content], {type:mime});
+    const tok = await nativeAsync('saveAs', filename, mime.split(';')[0]);
+    if(!tok){ snack(t('declined')); return; }
+    try{ if(blob.size>4*1024*1024) snack(t('writing'), null, null); await nativeWrite(tok, blob); onSaved&&onSaved(); snack(t('saved')); }
+    catch(e){ try{ NATIVE.abort(tok); }catch(_){} snack(t('fileSaveFail')); }
+    return;
+  }
   try{
     const type = filename.endsWith('.md') ? 'text/markdown;charset=utf-8' : 'application/json;charset=utf-8';
     const url = URL.createObjectURL(content instanceof Blob ? content : new Blob([content], {type}));
@@ -1874,9 +1955,11 @@ document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==
   ensureInbox(); purgeTrash();
   setInterval(checkReminders, 30000); setTimeout(checkReminders, 1500);
   if(isWide()){ const inbox=S.threads.find(x=>x.system==='inbox'); ui.threadId=inbox.id; ui.showThread=true; }
+  stampChanges();
   render();
   registerSW();
   handleLaunch();
+  if(NATIVE) nativeBoot();
 })();
 
 /* =========================================================
@@ -1895,6 +1978,9 @@ function handleLaunch(){
 }
 async function receiveShare(){
   const sh = await Store.take('share'); if(!sh || typeof sh!=='object') return;
+  return receiveShareData(sh);
+}
+async function receiveShareData(sh){
   const title=str(sh.title,2000).trim(), text=str(sh.text).trim(), url=str(sh.url,5000).trim();
   const parts=[];
   if(title && !text.includes(title) && title!==url) parts.push(title);
@@ -1927,7 +2013,7 @@ async function receiveShare(){
    Service worker: offline + updates
    ========================================================= */
 function registerSW(){
-  if(!('serviceWorker' in navigator) || location.protocol==='file:') return;
+  if(NATIVE || !('serviceWorker' in navigator) || location.protocol==='file:') return;
   const hadController = !!navigator.serviceWorker.controller;
   let reloading = false;
   navigator.serviceWorker.addEventListener('controllerchange', ()=>{ if(!hadController || reloading) return; reloading=true; clearTimeout(saveTimer); Store.save(S).finally(()=>location.reload()); });
@@ -1942,4 +2028,178 @@ function registerSW(){
       if(reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting); else reg.update().catch(()=>{}); });
   }).catch(e=>console.warn('SW registration failed', e));
 }
+/* =========================================================
+   Android app (APK) only: notifications, weekly backup, launch intents, updates.
+   Every function here returns early in a browser (NATIVE is null).
+   ========================================================= */
+let lastAlarmSig = '';
+// next weekly-backup reminder: 7 days after the last backup (or after "Tomorrow"), at 18:00
+function nextBackupAt(){
+  const s=S.settings;
+  let at = s.lastBackup ? s.lastBackup + 7*DAY : Date.now() + DAY;
+  if(s.backupSnooze && s.backupSnooze > at) at = s.backupSnooze;
+  at = Math.max(at, Date.now() + 60000);
+  const d=new Date(at); d.setHours(18,0,0,0); if(d.getTime() < at) d.setDate(d.getDate()+1);
+  return d.getTime();
+}
+// hands the full list of upcoming reminders to Android (AlarmManager); only when it changed
+function nativeAlarms(){
+  if(!NATIVE) return;
+  const now=Date.now(), list=[];
+  dueNotes().forEach(n=>{
+    if(n.done) return;
+    const r=remindTs(n.due); if(!r || r<=now) return;
+    const th=thread(n.threadId);
+    list.push({id:'n-'+n.id, at:r, title:noteSnippet(n)||t('photoMsg'), text:(th?th.name+' · ':'')+dueFull(n.due), note:n.id});
+  });
+  list.sort((a,b)=>a.at-b.at);
+  const out=list.slice(0,250);
+  if(S.notes.length) out.push({id:'backup', at:nextBackupAt(), title:t('backupDueT'), text:t('backupDueSub'), backup:true});
+  const sig=JSON.stringify(out); if(sig===lastAlarmSig) return; lastAlarmSig=sig;
+  try{ NATIVE.setAlarms(sig); }catch(e){}
+  if(list.length) askNotifOnce();
+}
+// Android 13+ asks for notification permission; we ask once, later only via Settings
+async function askNotifOnce(){
+  if(!NATIVE || S.settings.notifAsked) return;
+  let st='denied'; try{ st=NATIVE.notifState(); }catch(e){ return; }
+  if(st==='granted') return;
+  S.settings.notifAsked=true; persist();
+  await nativeAsync('requestNotif');
+  if(ui.left==='settings') renderLeft();
+}
+function nativeSettingsHTML(){
+  const s=S.settings; let folder='', notif='denied';
+  try{ folder=NATIVE.folderName()||''; }catch(e){}
+  try{ notif=NATIVE.notifState(); }catch(e){}
+  return `<div class="section-h">${t('weeklySection')}</div>
+    <div class="grp">
+      <div class="it"><span class="ic">${I.archive}</span><div class="grow">${t('backupFolder')}<div class="small">${esc(folder||t('noFolder'))}</div></div><button class="btn" data-act="n-folder">${t('changeFolder')}</button></div>
+      <div class="it"><span class="ic">${I.settings}</span><div class="grow">${t('encryptWeekly')}</div><div class="seg"><button class="${s.backupEncrypt?'':'on'}" data-act="n-enc" data-v="0">${t('encOff')}</button><button class="${s.backupEncrypt?'on':''}" data-act="n-enc" data-v="1">${t('encOn')}</button></div></div>
+      <button class="it" data-act="n-backup"><span class="ic">${I.download}</span><div class="grow">${t('backupToFolder')}<div class="small">${t('keepN')}</div></div></button>
+    </div>
+    <div class="section-h">${t('notifSection')}</div>
+    <div class="grp"><div class="it"><span class="ic">${I.bell}</span><div class="grow">${notif==='granted'?t('notifOn'):t('notifOff')}</div>${notif==='granted'?'':`<button class="btn" data-act="n-notif">${t('notifAllow')}</button>`}</div></div>`;
+}
+document.addEventListener('click', async e=>{
+  const a=e.target.closest('[data-act^="n-"]'); if(!a || !NATIVE || e.target.closest('.ov')) return;
+  const act=a.dataset.act;
+  if(act==='n-folder'){ const r=await nativeAsync('pickFolder'); if(r) renderLeft(); }
+  else if(act==='n-enc'){
+    const on=a.dataset.v==='1'; if(on===!!S.settings.backupEncrypt) return;
+    if(on){ const pw=await askNewPassword(); if(!pw) return; if(!NATIVE.secretSet('backupPw', pw)){ snack(t('backupFailed')); return; } }
+    else { try{ NATIVE.secretDel('backupPw'); }catch(_){} }
+    S.settings.backupEncrypt=on; commit();
+  }
+  else if(act==='n-backup'){ await runWeeklyBackup(); }
+  else if(act==='n-notif'){
+    if(!S.settings.notifAsked){ S.settings.notifAsked=true; persist(); await nativeAsync('requestNotif'); renderLeft(); }
+    else NATIVE.openNotifSettings();
+  }
+});
+function askNewPassword(){
+  return new Promise(res=>{
+    const ov=overlay(`<div class="dlg"><h3>${t('setPwT')}</h3><p>${t('setPwSub')}</p>
+      <label class="field">${t('password')}<input id="np1" type="password" autocomplete="new-password"></label>
+      <label class="field">${t('pwRepeat')}<input id="np2" type="password" autocomplete="new-password"></label>
+      <p id="npErr" style="color:var(--danger);display:none">${t('pwMismatch')}</p>
+      <div class="btns"><button class="btn" data-x="no">${t('cancel')}</button><button class="btn primary" data-x="ok">${t('save')}</button></div></div>`, true, ()=>res(null));
+    setTimeout(()=>$('#np1',ov).focus(),30);
+    ov.addEventListener('click',e=>{ const x=e.target.closest('[data-x]'); if(!x) return;
+      if(x.dataset.x==='no'){ closeOverlay(ov); res(null); return; }
+      const p1=$('#np1',ov).value, p2=$('#np2',ov).value;
+      if(!p1 || p1!==p2){ $('#npErr',ov).style.display='block'; return; }
+      closeOverlay(ov); res(p1); });
+  });
+}
+let weeklyBusy=false;
+function weeklyDue(){
+  const s=S.settings, now=Date.now();
+  if(!S.notes.length) return false;                       // nothing to back up yet (fresh install)
+  if(s.backupSnooze && now < s.backupSnooze) return false;
+  return !s.lastBackup || now - s.lastBackup >= 7*DAY;
+}
+async function weeklyPrompt(force){
+  if(!NATIVE || weeklyBusy || overlays.length) return;
+  if(!force && !weeklyDue()) return;
+  weeklyBusy=true;
+  try{
+    let folder=''; try{ folder=NATIVE.folderName()||''; }catch(e){}
+    const ok = await new Promise(res=>{
+      const ov=overlay(`<div class="dlg" role="alertdialog"><h3>${t('weeklyT')}</h3><p>${esc(t('weeklySub', folder))}</p><div class="btns"><button class="btn" data-x="no">${t('tomorrow2')}</button><button class="btn primary" data-x="yes">${t('backUp')}</button></div></div>`, true, ()=>res(false));
+      ov.addEventListener('click',e=>{ const x=e.target.closest('[data-x]'); if(!x) return; closeOverlay(ov); res(x.dataset.x==='yes'); });
+    });
+    if(!ok){ const d=new Date(); d.setDate(d.getDate()+1); d.setHours(0,0,0,0); S.settings.backupSnooze=d.getTime(); persist(); return; }
+    await runWeeklyBackup();
+  } finally { weeklyBusy=false; }
+}
+// ZIP backup into the chosen folder; keeps the 4 newest backups there
+async function runWeeklyBackup(){
+  let folder=''; try{ folder=NATIVE.folderName()||''; }catch(e){}
+  if(!folder){ folder=await nativeAsync('pickFolder'); if(!folder){ snack(t('folderNeeded')); return false; } }
+  let pw='';
+  if(S.settings.backupEncrypt){
+    try{ pw=NATIVE.secretGet('backupPw')||''; }catch(e){}
+    if(!pw){ pw=await askNewPassword(); if(!pw) return false; try{ NATIVE.secretSet('backupPw', pw); }catch(e){} }
+  }
+  snack(t('backupWorking'), null, null);
+  let blob;
+  try{ blob=await makeBackup(pw); }
+  catch(err){ snack(err && err.message==='too-large' ? t('backupTooLarge') : t('backupFailed')); return false; }
+  const d=new Date(), stamp=`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+  let tok=null; try{ tok=NATIVE.folderWrite(`memochat-backup-${stamp}${pw?'-encrypted':''}.zip`, 'application/zip'); }catch(e){}
+  if(!tok){ snack(t('folderLost')); return false; }
+  try{ await nativeWrite(tok, blob); }
+  catch(e){ try{ NATIVE.abort(tok); }catch(_){} snack(t('fileSaveFail')); return false; }
+  try{ NATIVE.folderPrune('memochat-backup-', 4); }catch(e){}
+  S.settings.lastBackup=Date.now(); S.settings.backupSnooze=null; S.settings.nudgeSnooze=null; commit();
+  snack(t('weeklyDone', folder));
+  if(ui.left==='settings') renderLeft();
+  return true;
+}
+// launches from Android: icon shortcut, notification tap, sharing from another app
+window.__mcLaunch = o => { handleNativeLaunch(o); };
+async function handleNativeLaunch(o){
+  if(!o || typeof o!=='object') return;
+  if(o.open){
+    const act=activeThreads();
+    if(o.open==='search') return openSearch(null);
+    let th = o.open==='work' ? act.find(x=>!x.system && x.name.trim().toLowerCase()==='work') : null;
+    th = th || act.find(x=>x.system==='inbox');
+    if(th){ ui.left='list'; openThread(th.id); }
+    return;
+  }
+  if(o.note){
+    const n=note(o.note); if(!n || n.deletedAt) return;
+    const th=thread(n.threadId); if(!th) return;
+    if(th.hideDone && n.done) th.hideDone=false;
+    ui.left='list'; openThread(th.id, {flash:[n.id]}); return;
+  }
+  if(o.backup) return weeklyPrompt(true);
+  if(o.share){
+    const sh=o.share, files=[];
+    for(const f of (Array.isArray(sh.files)?sh.files:[])){
+      if(!f || typeof f.url!=='string' || !/^\/__share\/\d+$/.test(f.url)) continue;   // only files Android handed over
+      try{ const r=await fetch(f.url); if(!r.ok) continue; const b=await r.blob(); files.push(new File([b], cleanName(f.name)||'', {type:cleanType(f.type||b.type)})); }catch(e){}
+    }
+    return receiveShareData({title:str(sh.title,2000), text:str(sh.text), url:'', files});
+  }
+}
+async function checkApkUpdate(){
+  const s=S.settings; if(s.updCheck && Date.now()-s.updCheck < 20*3600000) return;
+  const r=await nativeAsync('checkUpdate'); if(!r || typeof r!=='object') return;
+  s.updCheck=Date.now(); persist();
+  const info=nativeInfo();
+  if(num(r.versionCode,0) > num(info.versionCode,0) && typeof r.apk==='string' && /^https:\/\/github\.com\/tvspk\/memochat\/releases\/download\/[\w.-]+\/[\w.-]+\.apk$/.test(r.apk))
+    snack(t('apkUpdate', str(r.versionName,20)), [{label:t('later')}, {label:t('download'), fn:()=>NATIVE.openUrl(r.apk)}], 30000);
+}
+function nativeBoot(){
+  let L=null; try{ const j=NATIVE.takeLaunch(); if(j) L=JSON.parse(j); }catch(e){}
+  if(L) handleNativeLaunch(L);
+  nativeAlarms();
+  setTimeout(()=>{ if(!L || !L.backup) weeklyPrompt(false); }, 2000);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible'){ nativeAlarms(); setTimeout(()=>weeklyPrompt(false), 800); } });
+  setTimeout(checkApkUpdate, 5000);
+}
+
 })();

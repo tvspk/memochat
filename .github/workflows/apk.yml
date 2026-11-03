@@ -21,6 +21,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # a thread that was removed for good must never come back (see CLAUDE.md)
+      - name: Check for removed content
+        run: |
+          if grep -rIil 'b[e]tting' --exclude-dir=.git . ; then
+            echo "::error::Removed thread found in the files above. It must not come back (see CLAUDE.md)."
+            exit 1
+          fi
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

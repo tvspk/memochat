@@ -15,6 +15,18 @@ FILES += sorted('icons/' + f for f in os.listdir(os.path.join(ROOT, 'icons')) if
 FILES += sorted('fonts/' + f for f in os.listdir(os.path.join(ROOT, 'fonts'))
                 if f.endswith('.woff2') and re.search(r'-latin(-ext)?-\d+-normal\.woff2$', f))
 
+# a thread that was removed for good must never come back (see CLAUDE.md); the word is split so this file doesn't match
+BANNED = 'bet' + 'ting'
+for d, dirs, files in os.walk(ROOT):
+    dirs[:] = [x for x in dirs if x != '.git']
+    for f in files:
+        try:
+            with open(os.path.join(d, f), encoding='utf-8') as fh:
+                if BANNED in fh.read().lower():
+                    raise SystemExit('Removed thread found in ' + os.path.relpath(os.path.join(d, f), ROOT) + ' - it must not come back (see CLAUDE.md).')
+        except UnicodeDecodeError:
+            pass
+
 h = hashlib.sha256()
 for f in FILES:
     with open(os.path.join(ROOT, f), 'rb') as fh:

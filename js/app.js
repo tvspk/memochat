@@ -288,6 +288,8 @@ Object.assign(T.cs,{
   syncErrDamaged:'Část synchronizovaných dat nešla přečíst. Zbytek se synchronizoval.', syncErrHttp:s=>`GitHub požadavek odmítl (${s}). Zkus to později.`, syncErrOther:'Synchronizace se nepovedla. Zkus to později.',
   fileNotYet:'Tento soubor se ještě nestáhl. Synchronizuj znovu později.', aboutSync:'Synchronizace je zapnutá: změny se šifrovaně ukládají do tvého soukromého repozitáře na GitHubu.'
 });
+Object.assign(T.en,{ syncBg:'Also runs in the background about once a day', syncBgLast:s=>`last ${s}` });
+Object.assign(T.cs,{ syncBg:'Běží i na pozadí, zhruba jednou denně', syncBgLast:s=>`naposledy ${s}` });
 Object.assign(T.en,{
   qrShow:'Show QR code', qrHide:'Hide QR code', qrShowHint:'On the other device tap “Scan QR code”. The code hides itself in 2 minutes.',
   qrScan:'Scan QR code', qrScanT:'Scan the pairing code',
@@ -353,7 +355,7 @@ function nativeInfo(){ try{ return JSON.parse(NATIVE.info()); }catch(e){ return 
 function b64(u8){ let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(s); }
 const DEFAULT_SETTINGS = {theme:null, lang:'en', lastBackup:null, nudgeSnooze:null, recent:[], welcome:false};
 
-const APP_VERSION = '1.4.1';
+const APP_VERSION = '1.5.0';
 const DEFAULT_THREADS = [
   ['Inbox','📥','gray',{system:'inbox',pinned:true}],['Work','💼','blue'],['Home','🏠','purple'],['Shopping','🛒','pink'],['Ideas','💡','indigo'],
   ['Korean','🇰🇷','teal'],['Welsh','🏴󠁧󠁢󠁷󠁬󠁳󠁿','teal'],['Claude','✳️','slate'],['Copilot','🧭','slate'],['AI general','🤖','slate'],
@@ -2221,12 +2223,63 @@ function syncMerge(L, R, o){
   return {threads, notes, tombs};
 }
 
+/* ---------- the state this device uploads ---------- */
+// the JSON and a hash that tells whether it (or the attachments it lists) changed since the last upload
+// (in the stored form: a note made a moment ago and the same note after a restart give the same hash)
+async function syncStatePack(files){
+  const c=sanitizeData({threads:S.threads, notes:S.notes, tombs:S.tombs});
+  const json=JSON.stringify({app:'MemoChat', format:1, threads:c.threads, notes:c.notes, tombs:c.tombs});
+  return {json, hash:await sha256hex(json+'\n'+JSON.stringify(Object.entries(files).sort()))};
+}
+// [flag][gzip or plain JSON], encrypted as record "state", base64
+async function syncSealState(key, json){
+  let body=new TextEncoder().encode(json), flag=0;
+  try{ body=await gzip(body, true); flag=1; }catch(e){}
+  const plain=new Uint8Array(body.length+1); plain[0]=flag; plain.set(body,1);
+  return b64(await syncSeal(key, 'state', 0, true, plain));
+}
+
+/* ---------- Android: sync in the background (SyncJob / SyncCore.java) ----------
+   When the app is left it hands its encrypted state to the Android side. A job then uploads it, and once a day
+   (also with the app closed) looks for changes from the other devices: it sets the reminders for them and
+   remembers that the app should sync as soon as it is opened. Notes are merged only here, in the app. */
+const nativeBg = () => !!(NATIVE && NATIVE.syncPrepare && NATIVE.syncBgInfo);
+let bgHanding=false;
+async function syncHandOver(){
+  if(!nativeBg() || !syncOn() || !syncKey || bgHanding || syncBusy) return;
+  bgHanding=true;
+  try{
+    clearTimeout(saveTimer); stampChanges(); await Store.save(S);
+    const cfg=syncCfg, ids=new Set(), files={};
+    S.notes.forEach(n=>(n.attachments||[]).forEach(a=>ids.add(a.id)));
+    for(const id of ids) if(cfg.files[id]) files[id]=cfg.files[id];      // attachments not uploaded yet: next sync in the app
+    const {json, hash}=await syncStatePack(files);
+    const state=await syncSealState(syncKey, json);
+    if(syncCfg!==cfg) return;
+    NATIVE.syncPrepare(JSON.stringify({repo:cfg.repo, branch:cfg.branch, hash, upHash:cfg.upHash, state, files, seen:cfg.seen,
+      lang:S.settings.lang, photoMsg:t('photoMsg'), allDay:t('allDay')}));
+  }catch(e){ console.warn('sync hand-over', e); }
+  finally{ bgHanding=false; }
+}
+// what the background job did: {repo, branch, uploadedHash, uploadedAt, newsAt, lastRun, lastError, busy}
+function syncBgInfo(){
+  if(!nativeBg() || !syncOn()) return null;
+  let i=null; try{ i=JSON.parse(NATIVE.syncBgInfo()||'null'); }catch(e){}
+  if(!i || typeof i!=='object' || i.repo!==syncCfg.repo || i.branch!==syncCfg.branch) return i && i.busy ? {busy:true} : null;
+  // the job uploaded the state after the app's last sync: remember it, so the app doesn't upload the same again
+  if(typeof i.uploadedHash==='string' && num(i.uploadedAt,0) > (syncCfg.lastSync||0) && i.uploadedHash!==syncCfg.upHash){ syncCfg.upHash=i.uploadedHash; syncSaveCfg(); }
+  return i;
+}
+
 /* ---------- one sync run ---------- */
 function syncSetProg(s){ syncProg=s; const el=$('#syncLine'); if(el) el.textContent=s; }
 async function syncNow(manual){
   if(!syncOn() || syncBusy) return false;
   if(Store.mode!=='idb') return false;
   syncBusy=true; syncSetProg(t('syncing')); if(ui.left==='settings') renderLeft();
+  // a background run is just uploading: wait for it (at most a minute), then use what it did
+  for(let i=0; i<60 && (syncBgInfo()||{}).busy; i++) await new Promise(r=>setTimeout(r,1000));
+  syncBgInfo();
   const cfg=syncCfg, token=syncSec.token, key=syncKey, P=`/repos/${cfg.repo}`;
   cfg.lastAttempt=Date.now(); syncSaveCfg();
   let damaged=false, ok=false;
@@ -2309,15 +2362,11 @@ async function syncNow(manual){
     for(let attempt=0; ; attempt++){
       const files=await upFiles(attempt===0);
       clearTimeout(saveTimer); stampChanges(); await Store.save(S);
-      const json=JSON.stringify({app:'MemoChat', format:1, threads:S.threads, notes:S.notes, tombs:S.tombs});
-      const hash=await sha256hex(json+'\n'+JSON.stringify(Object.entries(files).sort()));
+      const {json, hash}=await syncStatePack(files);
       cfg.files=files;
       if(hash===cfg.upHash && ownCommit) break;
       syncSetProg(t('syncing'));
-      let body=new TextEncoder().encode(json), flag=0;
-      try{ body=await gzip(body, true); flag=1; }catch(e){}
-      const plain=new Uint8Array(body.length+1); plain[0]=flag; plain.set(body,1);
-      const blob=await gh(token,'POST',`${P}/git/blobs`, {content:b64(await syncSeal(key, 'state', 0, true, plain)), encoding:'base64'});
+      const blob=await gh(token,'POST',`${P}/git/blobs`, {content:await syncSealState(key, json), encoding:'base64'});
       const tree=[{path:'state', mode:'100644', type:'blob', sha:blob.sha}];
       for(const [id,shas] of Object.entries(files)) shas.forEach((s,j)=>tree.push({path:`a-${id}-${j}`, mode:'100644', type:'blob', sha:s}));
       let tr;
@@ -2339,6 +2388,7 @@ async function syncNow(manual){
     if(syncCfg===cfg) await syncSaveCfg();
     if(ui.left==='settings') renderLeft();
   }
+  if(ok) setTimeout(syncHandOver, 0);          // the background job starts from the merged state
   if(ok && manual) snack(damaged ? t('syncErrDamaged') : t('syncDone'));
   else if(!ok && (manual || ['token','notfound','forbidden','public'].includes(cfg.lastError)))
     snack(syncErrText(cfg.lastError), manual || ui.left==='settings' ? null : t('settings'), ()=>goLeft('settings'), 10000);
@@ -2357,7 +2407,10 @@ function syncErrText(k){
 // automatic: when the app opens or comes back, at most once a day
 function syncMaybe(){
   if(!syncOn() || syncBusy || navigator.onLine===false) return;
-  const now=Date.now();
+  const now=Date.now(), bg=syncBgInfo();
+  if(bg && bg.busy){ setTimeout(syncMaybe, 5000); return; }
+  // the background job found changes from another device that aren't merged yet
+  if(bg && num(bg.newsAt,0) > (syncCfg.lastSync||0) && now-(syncCfg.lastAttempt||0) >= 60000){ syncNow(false); return; }
   if(now-(syncCfg.lastSync||0) < SYNC_EVERY || now-(syncCfg.lastAttempt||0) < SYNC_RETRY) return;
   syncNow(false);
 }
@@ -2367,7 +2420,7 @@ async function syncBoot(){
   if(syncCfg){ syncSec=await syncSecretLoad(); if(syncSec){ try{ syncKey=await syncDeriveKey(syncSec.code); }catch(e){ syncKey=null; } } }
   if(ui.left==='settings') renderLeft();
   setTimeout(syncMaybe, 3000);
-  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') setTimeout(syncMaybe, 1500); });
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') setTimeout(syncMaybe, 1500); else syncHandOver(); });
   window.addEventListener('online', ()=>setTimeout(syncMaybe, 3000));
 }
 
@@ -2559,10 +2612,16 @@ async function syncDisconnect(){
   const cfg=syncCfg, sec=syncSec;
   syncCfg=null; syncSec=null; syncKey=null;
   await syncSecretDel(); await syncSaveCfg();
+  if(nativeBg() && NATIVE.syncBgReset) try{ NATIVE.syncBgReset(); }catch(e){}
   // this device's branch is no longer needed (the other devices already have its notes)
   if(cfg && sec) gh(sec.token,'DELETE',`/repos/${cfg.repo}/git/refs/heads/${cfg.branch}`).catch(()=>{});
   if(ui.left==='settings') renderLeft();
   snack(t('syncOffDone'));
+}
+function syncBgLine(){
+  if(!nativeBg()) return '';
+  const i=syncBgInfo()||{};
+  return `<div class="small">${esc(t('syncBg'))}${num(i.lastRun,0) ? ' · '+esc(t('syncBgLast', fullWhen(i.lastRun))) : ''}</div>`;
 }
 function syncSettingsHTML(){
   if(Store.mode!=='idb') return '';
@@ -2575,7 +2634,7 @@ function syncSettingsHTML(){
   const line = syncBusy ? (syncProg||t('syncing')) : (c.lastSync ? t('syncLast', fullWhen(c.lastSync)) : t('syncNever'));
   const old = Date.now()-(c.tokenAt||Date.now()) > 350*DAY;
   return `<div class="section-h">${t('syncSection')}</div><div class="grp">
-    <button class="it" data-act="sync-now"><span class="ic">${I.sync}</span><div class="grow">${t('syncNow')}<div class="small" id="syncLine">${esc(line)}</div>${err?`<div class="small" style="color:var(--danger)">${esc(err)}</div>`:''}</div></button>
+    <button class="it" data-act="sync-now"><span class="ic">${I.sync}</span><div class="grow">${t('syncNow')}<div class="small" id="syncLine">${esc(line)}</div>${err?`<div class="small" style="color:var(--danger)">${esc(err)}</div>`:''}${syncBgLine()}</div></button>
     ${c.lastError==='token'||old?`<button class="it" data-act="sync-token"><span class="ic">${I.edit}</span><div class="grow">${t('syncNewToken')}<div class="small">${old&&c.lastError!=='token'?t('syncTokenOld'):esc(c.repo)}</div></div></button>`:''}
     <button class="it" data-act="sync-code"><span class="ic">${I.eye}</span><div class="grow">${t('syncCode')}<div class="small">${t('syncCodeSub')}</div></div></button>
     <button class="it" data-act="sync-off"><span class="ic">${I.x}</span><div class="grow">${t('syncOff')}<div class="small">${t('syncOffSub', esc(c.repo))}</div></div></button>

@@ -135,6 +135,12 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onResume() { super.onResume(); SyncJob.foreground = true; }
+
+    @Override
+    protected void onPause() { SyncJob.foreground = false; super.onPause(); }
+
+    @Override
     protected void onDestroy() {
         for (OutputStream o : outs.values()) { try { o.close(); } catch (IOException ignored) {} }
         outs.clear();
@@ -436,6 +442,16 @@ public class MainActivity extends Activity {
        Methods run on a WebView background thread; UI work goes through runOnUiThread.
        Only the app's own page is ever loaded in this WebView (see Client). */
     class Bridge {
+        /* --- sync in the background (SyncJob) --- */
+        @JavascriptInterface
+        public boolean syncPrepare(String json) { return SyncJob.savePack(MainActivity.this, json); }
+
+        @JavascriptInterface
+        public String syncBgInfo() { return SyncJob.info(MainActivity.this); }
+
+        @JavascriptInterface
+        public void syncBgReset() { SyncJob.reset(MainActivity.this); }
+
         @JavascriptInterface
         public String info() {
             try {

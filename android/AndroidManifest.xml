@@ -5,7 +5,7 @@
 
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
 
-    <!-- update check (GitHub releases) and opening links; the notes themselves never leave the phone -->
+    <!-- update check (GitHub releases), opening links, and sync through your own private GitHub repository (encrypted) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- reminders for dates -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -55,6 +55,12 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+
+        <!-- sync in the background: once a day and shortly after the app was left -->
+        <service
+            android:name=".SyncJob"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="false" />
 
         <!-- hands an attachment to another app ("Open in app", "Share") -->
         <provider

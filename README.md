@@ -24,6 +24,10 @@ repository of your own (e.g. `memochat-sync`), used as an encrypted mailbox:
   attachments are stored as encrypted pieces of up to 8 MiB. The newer change of a note wins; if both devices
   changed the same note, the other version is kept in the note's edit history. Notes deleted forever stay deleted
   (tombstones). Language and appearance are not synced.
+- The pairing code can also be shown as a QR code and scanned with the camera (`js/qr.js`, no libraries).
+- Android also syncs in the background (`SyncJob.java`, `SyncCore.java`): about a minute after the app is left and
+  about once a day, it uploads the phone's state (prepared and encrypted by the app) and checks the other devices.
+  It sets reminders for their dated notes and makes the app sync at once when opened. Notes are merged only in the app.
 
 ## Structure
 

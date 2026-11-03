@@ -1,0 +1,58 @@
+/* MemoChat service worker — offline app shell.
+   GENERATED from sw.js.template by scripts/build_sw.py; do not edit sw.js by hand. */
+'use strict';
+const VERSION = '__VERSION__';
+const SHELL = 'memochat-shell-' + VERSION;
+const FONTS = 'memochat-fonts-v1';       // runtime cache for the large Korean font subsets
+const PRECACHE = __PRECACHE__;
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(SHELL).then(cache => cache.addAll(PRECACHE.map(u => new Request(u, {cache: 'reload'}))))
+  );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k.startsWith('memochat-') && k !== SHELL && k !== FONTS).map(k => caches.delete(k)));
+    await self.clients.claim();
+  })());
+});
+
+self.addEventListener('message', event => {
+  if (event.data === 'skipWaiting') self.skipWaiting();
+});
+
+self.addEventListener('fetch', event => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;   // never touch other sites
+
+  // App pages: always the cached shell (works offline); network only as a fallback.
+  if (req.mode === 'navigate') {
+    event.respondWith((async () => {
+      const cache = await caches.open(SHELL);
+      const hit = await cache.match('./index.html');
+      if (hit) return hit;
+      try { return await fetch(req); }
+      catch (e) { return new Response('MemoChat is offline and not installed yet.', {status: 503, headers: {'Content-Type': 'text/plain; charset=utf-8'}}); }
+    })());
+    return;
+  }
+
+  event.respondWith((async () => {
+    // look only in this version's shell cache (never mix files from a newer, still-waiting version)
+    const hit = (await (await caches.open(SHELL)).match(req, {ignoreSearch: true}))
+             || (await (await caches.open(FONTS)).match(req));
+    if (hit) return hit;
+    const res = await fetch(req);
+    // keep font subsets once they have been used, so they work offline afterwards
+    if (res.ok && url.pathname.includes('/fonts/') && url.pathname.endsWith('.woff2')) {
+      const copy = res.clone();
+      event.waitUntil(caches.open(FONTS).then(c => c.put(req, copy)));
+    }
+    return res;
+  })());
+});

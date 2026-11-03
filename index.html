@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#2B4C7E">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Notes as a chat with yourself. Works offline; your notes stay on your device.">
+<title>MemoChat</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><pattern id="knotP" width="24" height="18" patternUnits="userSpaceOnUse"><path d="M0 4C6 4 6 14 12 14S18 4 24 4" fill="none" stroke="#D9B45A" stroke-width="2.4"/><path d="M0 14C6 14 6 4 12 4S18 14 24 14" fill="none" stroke="#D9B45A" stroke-width="2.4"/></pattern></defs></svg>
+<div id="app">
+  <section id="left" class="pane"></section>
+  <section id="right" class="pane"></section>
+</div>
+<input type="file" id="photoInput" accept="image/*" class="hidden">
+<input type="file" id="importInput" accept=".json,application/json" class="hidden">
+<noscript>MemoChat needs JavaScript.</noscript>
+<script src="js/app.js"></script>
+</body>
+</html>

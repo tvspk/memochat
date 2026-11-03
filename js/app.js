@@ -87,6 +87,7 @@ const I = {
   film: sv('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4.5-2.5z"/>'),
   music: sv('<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>'),
   share: sv('<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/>'),
+  qr: sv('<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2"/>'),
   sync: sv('<path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 21v-5h-5"/>'),
   dia: ''
 };
@@ -257,7 +258,7 @@ Object.assign(T.en,{
   syncToken:'Token', syncRepo:'Repository', syncConnect:'Connect', syncChecking:'Checking…',
   syncCodeT:'Your pairing code', syncCodeNew:'Save these 8 words in your password manager now. You’ll type them on your other device, and without them no other device can read your synced notes.',
   syncCodeSaved:'I’ve saved it', copyCode:'Copy',
-  syncEnterT:'Pairing code', syncEnter:'This repository is already used by your other device. Enter its 8-word pairing code (on the other device: ⋮ → Backup & settings → Pairing code).',
+  syncEnterT:'Pairing code', syncEnter:'This repository is already used by your other device. Enter its 8-word pairing code or scan it as a QR code (on the other device: ⋮ → Backup & settings → Pairing code).',
   syncCodeBad:'Enter the 8 words of the code.', syncCodeWrong:'This code doesn’t match. Check the words.',
   syncNewToken:'Enter a new token', syncNewTokenSub:r=>`Create a new token for ${r} on GitHub (Contents: Read and write) and paste it here.`,
   syncTokenOld:'The token is almost a year old and may expire soon.', syncErrOtherBox:'This token opens a different sync repository.',
@@ -278,7 +279,7 @@ Object.assign(T.cs,{
   syncToken:'Token', syncRepo:'Repozitář', syncConnect:'Připojit', syncChecking:'Ověřuji…',
   syncCodeT:'Tvůj párovací kód', syncCodeNew:'Hned si těchto 8 slov ulož do správce hesel. Zadáš je v druhém zařízení a bez nich žádné jiné zařízení synchronizované poznámky nepřečte.',
   syncCodeSaved:'Mám uloženo', copyCode:'Kopírovat',
-  syncEnterT:'Párovací kód', syncEnter:'Tento repozitář už používá tvoje druhé zařízení. Zadej jeho párovací kód (8 slov; v druhém zařízení: ⋮ → Záloha a nastavení → Párovací kód).',
+  syncEnterT:'Párovací kód', syncEnter:'Tento repozitář už používá tvoje druhé zařízení. Zadej jeho párovací kód (8 slov), nebo ho naskenuj jako QR kód (v druhém zařízení: ⋮ → Záloha a nastavení → Párovací kód).',
   syncCodeBad:'Zadej 8 slov kódu.', syncCodeWrong:'Kód nesedí. Zkontroluj slova.',
   syncNewToken:'Vložit nový token', syncNewTokenSub:r=>`Na GitHubu vytvoř nový token pro ${r} (Contents: Read and write) a vlož ho sem.`,
   syncTokenOld:'Token je skoro rok starý, brzy může vypršet.', syncErrOtherBox:'Tento token otevírá jiný repozitář synchronizace.',
@@ -286,6 +287,24 @@ Object.assign(T.cs,{
   syncErrRepo:'Repozitář nebyl nalezen nebo k němu token nemá přístup.', syncErrPublic:'Repozitář musí být soukromý (Private).',
   syncErrDamaged:'Část synchronizovaných dat nešla přečíst. Zbytek se synchronizoval.', syncErrHttp:s=>`GitHub požadavek odmítl (${s}). Zkus to později.`, syncErrOther:'Synchronizace se nepovedla. Zkus to později.',
   fileNotYet:'Tento soubor se ještě nestáhl. Synchronizuj znovu později.', aboutSync:'Synchronizace je zapnutá: změny se šifrovaně ukládají do tvého soukromého repozitáře na GitHubu.'
+});
+Object.assign(T.en,{
+  qrShow:'Show QR code', qrHide:'Hide QR code', qrShowHint:'On the other device tap “Scan QR code”. The code hides itself in 2 minutes.',
+  qrScan:'Scan QR code', qrScanT:'Scan the pairing code',
+  qrScanSub:'On the other device open ⋮ → Backup & settings → Pairing code → Show QR code, and point the camera at it.',
+  qrStarting:'Starting the camera…', qrLooking:'Looking for the code…',
+  qrNoCam:'The camera isn’t available here. Type the 8 words instead.',
+  qrDenied:'MemoChat isn’t allowed to use the camera. Allow it in the app settings, or type the 8 words instead.',
+  qrWrong:'This isn’t a MemoChat pairing code.'
+});
+Object.assign(T.cs,{
+  qrShow:'Zobrazit QR kód', qrHide:'Skrýt QR kód', qrShowHint:'V druhém zařízení ťukni na „Naskenovat QR kód“. Kód se za 2 minuty sám skryje.',
+  qrScan:'Naskenovat QR kód', qrScanT:'Naskenuj párovací kód',
+  qrScanSub:'V druhém zařízení otevři ⋮ → Záloha a nastavení → Párovací kód → Zobrazit QR kód a namiř na něj fotoaparát.',
+  qrStarting:'Zapínám fotoaparát…', qrLooking:'Hledám kód…',
+  qrNoCam:'Fotoaparát tady není dostupný. Opiš raději 8 slov.',
+  qrDenied:'MemoChat nemá povolený fotoaparát. Povol ho v nastavení aplikace, nebo opiš 8 slov.',
+  qrWrong:'Tohle není párovací kód MemoChatu.'
 });
 function t(k,...a){ const L=T[S.settings.lang]||T.en; const v=L[k]!==undefined?L[k]:T.en[k]; return typeof v==='function'?v(...a):v; }
 function loc(){ return S.settings.lang==='cs'?'cs-CZ':'en-GB'; }
@@ -334,7 +353,7 @@ function nativeInfo(){ try{ return JSON.parse(NATIVE.info()); }catch(e){ return 
 function b64(u8){ let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(s); }
 const DEFAULT_SETTINGS = {theme:null, lang:'en', lastBackup:null, nudgeSnooze:null, recent:[], welcome:false};
 
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 const DEFAULT_THREADS = [
   ['Inbox','📥','gray',{system:'inbox',pinned:true}],['Work','💼','blue'],['Home','🏠','purple'],['Shopping','🛒','pink'],['Ideas','💡','indigo'],
   ['Korean','🇰🇷','teal'],['Welsh','🏴󠁧󠁢󠁷󠁬󠁳󠁿','teal'],['Claude','✳️','slate'],['Copilot','🧭','slate'],['AI general','🤖','slate'],
@@ -2407,15 +2426,83 @@ async function syncConnect(token, repo, code){
   if(ui.left==='settings') renderLeft();
   await syncNow(true);
 }
-// shows the 8 words; first=true: "I've saved it" is required
+// shows the 8 words; first=true: "I've saved it" is required. The QR code (same 8 words) is shown only on request.
+const QR_PREFIX='MEMOCHAT:', QR_SHOW_MS=120000;
+function syncCodeQR(code){ return window.MemoQR ? window.MemoQR.svg(QR_PREFIX+code.toUpperCase(), 'M') : ''; }
 function syncShowCode(code, first){
   return new Promise(res=>{
+    const canQR=!!window.MemoQR;
     const ov=overlay(`<div class="dlg"><h3>${first?t('syncCodeT'):t('syncCode')}</h3><p>${first?t('syncCodeNew'):t('syncCodeShow')}</p>${syncCodeHTML(code)}
-      <div class="btns"><button class="btn" data-x="copy">${t('copyCode')}</button>${first?`<button class="btn" data-x="no">${t('cancel')}</button>`:''}<button class="btn primary" data-x="ok">${first?t('syncCodeSaved'):t('close')}</button></div></div>`, true, ()=>res(false));
+      <div class="qrbox" hidden><div class="qrimg"></div><p class="small">${t('qrShowHint')}</p></div>
+      <div class="btns">${canQR?`<button class="btn" data-x="qr">${t('qrShow')}</button>`:''}<button class="btn" data-x="copy">${t('copyCode')}</button>${first?`<button class="btn" data-x="no">${t('cancel')}</button>`:''}<button class="btn primary" data-x="ok">${first?t('syncCodeSaved'):t('close')}</button></div></div>`, true, ()=>res(false));
+    let timer=0;
+    const box=$('.qrbox',ov), qb=$('[data-x="qr"]',ov);
+    const hideQR=()=>{ clearTimeout(timer); timer=0; box.hidden=true; $('.qrimg',box).innerHTML=''; if(qb) qb.textContent=t('qrShow'); };
     ov.addEventListener('click', async e=>{ const x=e.target.closest('[data-x]'); if(!x) return;
+      if(x.dataset.x==='qr'){
+        if(!box.hidden){ hideQR(); return; }
+        try{ $('.qrimg',box).innerHTML=syncCodeQR(code); }catch(er){ console.warn('qr', er); return; }
+        box.hidden=false; qb.textContent=t('qrHide');
+        timer=setTimeout(hideQR, QR_SHOW_MS);
+        box.scrollIntoView({block:'nearest'});
+        return;
+      }
       if(x.dataset.x==='copy'){ snack(await copyText(code.split(' ').map((w,i)=>`${i+1}. ${w}`).join('\n')) ? t('copied') : t('copyFail')); return; }
-      closeOverlay(ov); res(x.dataset.x==='ok'); });
+      hideQR(); closeOverlay(ov); res(x.dataset.x==='ok'); });
   });
+}
+// camera scanner; resolves with the scanned text that accept() returned true for, or null
+function qrScan(accept){
+  return new Promise(res=>{
+    let stream=null, timer=0, done=false, busy=false, detector=null;
+    const finish=v=>{ if(done) return; done=true; clearTimeout(timer); if(stream) stream.getTracks().forEach(tr=>{ try{ tr.stop(); }catch(e){} }); if(overlays.includes(ov)) closeOverlay(ov); res(v); };
+    const ov=overlay(`<div class="dlg"><h3>${t('qrScanT')}</h3><p>${t('qrScanSub')}</p>
+      <div class="qrcam"><video playsinline muted autoplay></video><div class="qrframe"></div></div>
+      <p class="small qrstate">${t('qrStarting')}</p>
+      <div class="btns"><button class="btn" data-x="no">${t('cancel')}</button></div></div>`, true, ()=>finish(null));
+    const video=$('video',ov), state=$('.qrstate',ov), canvas=document.createElement('canvas');
+    const say=(s, bad)=>{ state.textContent=s; state.style.color=bad?'var(--danger)':''; };
+    ov.addEventListener('click', e=>{ const x=e.target.closest('[data-x]'); if(x && x.dataset.x==='no') finish(null); });
+    const tick=async ()=>{
+      if(done) return;
+      if(!busy && video.readyState>=2 && video.videoWidth){
+        busy=true;
+        try{
+          const k=Math.min(1, 800/Math.max(video.videoWidth, video.videoHeight));
+          const w=canvas.width=Math.round(video.videoWidth*k), h=canvas.height=Math.round(video.videoHeight*k);
+          const ctx=canvas.getContext('2d', {willReadFrequently:true});
+          ctx.drawImage(video, 0, 0, w, h);
+          let text=null;
+          if(detector){ try{ const r=await detector.detect(canvas); if(r && r[0] && r[0].rawValue) text=r[0].rawValue; }catch(e){ detector=null; } }
+          if(text==null && window.MemoQR) text=window.MemoQR.decode(ctx.getImageData(0, 0, w, h), 80);
+          if(text!=null && !done){ if(accept(text)){ finish(text); return; } say(t('qrWrong'), true); }
+        }catch(e){ console.warn('qr scan', e); }
+        busy=false;
+      }
+      timer=setTimeout(tick, 150);
+    };
+    (async ()=>{
+      if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ say(t('qrNoCam'), true); return; }
+      try{
+        stream=await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}}});
+      }catch(e){
+        console.warn('camera', e);
+        say(e && (e.name==='NotAllowedError' || e.name==='SecurityError') ? t('qrDenied') : t('qrNoCam'), true); return;
+      }
+      if(done){ stream.getTracks().forEach(tr=>tr.stop()); return; }
+      try{ if('BarcodeDetector' in window){ const f=await window.BarcodeDetector.getSupportedFormats(); if(f.includes('qr_code')) detector=new window.BarcodeDetector({formats:['qr_code']}); } }catch(e){ detector=null; }
+      video.srcObject=stream;
+      try{ await video.play(); }catch(e){}
+      say(t('qrLooking'));
+      tick();
+    })();
+  });
+}
+// the pairing code inside a scanned QR (null if it isn't one)
+function qrToCode(text){
+  const s=String(text||'').trim();
+  if(s.slice(0, QR_PREFIX.length).toUpperCase()!==QR_PREFIX) return null;
+  return syncParseCode(s.slice(QR_PREFIX.length));
 }
 // asks for the code of an existing mailbox until it matches; resolves with the normalised code or null
 function syncAskCode(check){
@@ -2423,11 +2510,18 @@ function syncAskCode(check){
     const ov=overlay(`<div class="dlg"><h3>${t('syncEnterT')}</h3><p>${t('syncEnter')}</p>
       <label class="field"><textarea id="syCode" rows="3" autocomplete="off" autocapitalize="none" spellcheck="false"></textarea></label>
       <p id="syCErr" style="color:var(--danger);display:none"></p>
-      <div class="btns"><button class="btn" data-x="no">${t('cancel')}</button><button class="btn primary" data-x="ok">${t('syncConnect')}</button></div></div>`, true, ()=>res(null));
+      <div class="btns">${window.MemoQR?`<button class="btn" data-x="scan">${I.qr} ${t('qrScan')}</button>`:''}<button class="btn" data-x="no">${t('cancel')}</button><button class="btn primary" data-x="ok">${t('syncConnect')}</button></div></div>`, true, ()=>res(null));
     setTimeout(()=>$('#syCode',ov).focus(),30);
     let busy=false;
     ov.addEventListener('click', async e=>{ const x=e.target.closest('[data-x]'); if(!x || busy) return;
       if(x.dataset.x==='no'){ closeOverlay(ov); res(null); return; }
+      if(x.dataset.x==='scan'){
+        const txt=await qrScan(s=>!!qrToCode(s));
+        if(!txt || !overlays.includes(ov)) return;
+        $('#syCode',ov).value=qrToCode(txt);
+        $('[data-x="ok"]',ov).click();     // checks the code against the mailbox, as if typed
+        return;
+      }
       const er=$('#syCErr',ov), code=syncParseCode($('#syCode',ov).value);
       if(!code){ er.textContent=t('syncCodeBad'); er.style.display='block'; return; }
       busy=true;

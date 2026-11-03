@@ -24,6 +24,7 @@ import android.view.View;
 import android.view.Window;
 import android.webkit.JavascriptInterface;
 import android.webkit.MimeTypeMap;
+import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -65,12 +66,13 @@ public class MainActivity extends Activity {
     static final String BASE = "https://" + HOST + "/";
     static final String UPDATE_URL = "https://github.com/tvspk/memochat/releases/latest/download/version.json";
 
-    private static final int REQ_FILES = 1, REQ_SAVE = 2, REQ_TREE = 3, REQ_NOTIF = 4;
+    private static final int REQ_FILES = 1, REQ_SAVE = 2, REQ_TREE = 3, REQ_NOTIF = 4, REQ_CAMERA = 5;
 
     WebView web;
     boolean pageReady;
     String pendingLaunch;                       // JSON for the page, taken by takeLaunch()
     ValueCallback<Uri[]> fileCallback;
+    PermissionRequest camRequest;               // the page's camera request waiting for the Android permission
     String saveCb, treeCb, notifCb;
     int shareSeq;
     final Map<String, Uri> shared = new ConcurrentHashMap<>();
@@ -291,6 +293,29 @@ public class MainActivity extends Activity {
             catch (ActivityNotFoundException e) { fileCallback = null; return false; }
             return true;
         }
+
+        /* camera for scanning the pairing QR code: only our own page, only video */
+        @Override
+        public void onPermissionRequest(PermissionRequest request) {
+            boolean video = false, other = false;
+            for (String r : request.getResources()) {
+                if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(r)) video = true; else other = true;
+            }
+            Uri o = request.getOrigin();
+            if (!video || other || o == null || !HOST.equals(o.getHost()) || !"https".equals(o.getScheme())) { request.deny(); return; }
+            if (checkSelfPermission("android.permission.CAMERA") == PackageManager.PERMISSION_GRANTED) {
+                request.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+                return;
+            }
+            if (camRequest != null) camRequest.deny();
+            camRequest = request;
+            requestPermissions(new String[]{"android.permission.CAMERA"}, REQ_CAMERA);
+        }
+
+        @Override
+        public void onPermissionRequestCanceled(PermissionRequest request) {
+            if (camRequest == request) camRequest = null;
+        }
     }
 
     @Override
@@ -342,6 +367,12 @@ public class MainActivity extends Activity {
         if (req == REQ_NOTIF) {
             String cb = notifCb; notifCb = null;
             resolve(cb, notificationsOn() ? "true" : "false");
+        } else if (req == REQ_CAMERA) {
+            PermissionRequest r = camRequest; camRequest = null;
+            if (r == null) return;
+            if (checkSelfPermission("android.permission.CAMERA") == PackageManager.PERMISSION_GRANTED)
+                r.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+            else r.deny();
         }
     }
 

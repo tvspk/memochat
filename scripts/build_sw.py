@@ -10,7 +10,7 @@ Run after every change to the app files:  python3 scripts/build_sw.py
 import hashlib, json, os, re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FILES = ['index.html', 'manifest.webmanifest', 'css/app.css', 'js/app.js', 'fonts/fonts.css']
+FILES = ['index.html', 'manifest.webmanifest', 'css/app.css', 'js/qr.js', 'js/app.js', 'fonts/fonts.css']
 FILES += sorted('icons/' + f for f in os.listdir(os.path.join(ROOT, 'icons')) if f.endswith(('.png', '.svg')))
 FILES += sorted('fonts/' + f for f in os.listdir(os.path.join(ROOT, 'fonts'))
                 if f.endswith('.woff2') and re.search(r'-latin(-ext)?-\d+-normal\.woff2$', f))

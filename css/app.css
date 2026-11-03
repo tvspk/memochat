@@ -20,7 +20,17 @@
   --p0:#5DBB63; --p1:#FFD54A; --p2:#FF8A1F; --p3:#EF5350;
   --sheet:#141D33; --hover:rgba(237,231,218,.06); --line:#1C2741; --overlay:rgba(0,0,0,.55);
   --danger:#FF6B63; --font-h:'Gowun Batang', Georgia, serif; --font-b:'Noto Sans KR', system-ui, sans-serif;
-  --radius:16px; --fs:15px; --hfs:22px; --hfw:700;
+  --radius:14px; --fs:16px; --hfs:23px; --hfw:700;
+}
+/* Same sizes in both themes. The dark theme's Korean fonts are drawn larger than the light theme's fonts at
+   the same font-size, so they are scaled to the same apparent size: body text to the x-height of Source Sans 3,
+   headings to the cap height of EB Garamond. Line heights follow the light fonts' natural ones. */
+[data-theme="dark"] body{font-size-adjust:ex-height .5;line-height:1.4}
+[data-theme="dark"] :is(.hdr .name,.day,.agh,.empty .etitle,.placeholder .big,.sheet .sh-title,.dlg h3,.ava-letter){font-size-adjust:cap-height .656}
+[data-theme="dark"] :is(.day,.agh,.empty .etitle,.placeholder .big,.sheet .sh-title,.dlg h3,.ava-letter){line-height:1.305}
+@supports not (font-size-adjust:.5){
+  [data-theme="dark"]{--fs:15px;--hfs:22px}
+  [data-theme="dark"] .day{font-size:14px;letter-spacing:.02em}
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:var(--font-b);-webkit-tap-highlight-color:transparent}
@@ -104,7 +114,6 @@ svg{flex:none}
 .msgs{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:14px 14px 18px;min-height:0}
 .msgs-inner{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
 .day{align-self:center;display:flex;align-items:center;gap:8px;font-family:var(--font-h);font-size:15px;color:var(--muted2);letter-spacing:.06em;margin:6px 0 2px}
-[data-theme="dark"] .day{font-size:14px;letter-spacing:.02em}
 .hiddeninfo{align-self:center;font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
 
 .nwrap{position:relative;border-radius:var(--radius)}
@@ -140,7 +149,7 @@ svg{flex:none}
 
 /* ---------- composer ---------- */
 .composer{flex:none;background:var(--comp-bg);border-top:1px solid var(--comp-bd);padding:10px 12px 14px;display:flex;flex-direction:column;gap:10px}
-[data-theme="dark"] .composer{border-top:0;box-shadow:inset 0 3px 0 #2B4C7E,inset 0 6px 0 #C9A24A;padding-top:16px}
+[data-theme="dark"] .composer{border-top:0;box-shadow:inset 0 3px 0 #2B4C7E,inset 0 6px 0 #C9A24A;padding-top:11px}
 .composer-in{max-width:760px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:10px}
 .prirow{display:flex;align-items:center;gap:12px;padding-left:6px;font-size:13px;color:var(--muted)}
 .prirow .dot.on{box-shadow:0 0 0 2px var(--comp-bg),0 0 0 4px var(--ring)}
@@ -282,6 +291,15 @@ mark{background:color-mix(in srgb,var(--gold) 45%,transparent);color:inherit;bor
 .codewords{margin:4px 0 4px;padding:12px 14px 12px 36px;columns:2;column-gap:28px;background:var(--bg);border-radius:12px;font-size:17px;line-height:1.7;font-variant-numeric:tabular-nums;user-select:text;-webkit-user-select:text}
 .codewords li{break-inside:avoid;color:var(--fg)}
 .codewords li::marker{color:var(--muted);font-size:14px}
+.qrbox{margin:14px 0 0;text-align:center}
+.qrbox[hidden]{display:none}
+.qrimg svg{display:block;width:min(260px,100%);height:auto;margin:0 auto;border-radius:10px;box-shadow:0 0 0 1px var(--line)}
+.qrbox p{margin:10px 0 0;font-size:13px;color:var(--muted)}
+.qrcam{position:relative;width:100%;aspect-ratio:4/3;background:#000;border-radius:12px;overflow:hidden}
+.qrcam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.qrframe{position:absolute;left:50%;top:50%;width:62%;aspect-ratio:1;transform:translate(-50%,-50%);border:2px solid rgba(255,255,255,.85);border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.25);pointer-events:none}
+.qrstate{margin:10px 0 0!important;font-size:14px;color:var(--muted)}
+.dlg .btn svg{width:18px;height:18px;vertical-align:-4px;margin-right:2px}
 .field{display:flex;flex-direction:column;gap:6px;margin:10px 0;font-size:13px;color:var(--muted)}
 .field input,.field textarea{height:42px;border-radius:12px;border:1px solid var(--comp-bd);background:var(--input-bg);padding:0 12px;font:inherit;font-size:16px;color:var(--fg);outline:none}
 .field textarea{height:140px;padding:10px 12px;font-family:ui-monospace,monospace;font-size:12px;resize:vertical}

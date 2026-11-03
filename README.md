@@ -6,6 +6,8 @@ Notes as a chat with yourself. An installable, offline-first web app (PWA) for A
 
 - Your notes are stored only on your device (IndexedDB in the browser). Nothing is uploaded anywhere.
 - Back up regularly: ⋮ → Backup & settings → Back up to file. Backups from the prototype can be restored here.
+- Share to MemoChat from other apps (text, links, one photo): Share → MemoChat → choose a thread.
+- Long-press the app icon for shortcuts: Inbox, Work, Search.
 
 ## Structure
 

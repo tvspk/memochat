@@ -200,13 +200,17 @@ Object.assign(T.en,{
   welcomeT:'Welcome to MemoChat', welcomeSub:'Have a backup from the prototype? Restore it to bring your notes over.', dismiss:'Dismiss',
   updateReady:'A new version of MemoChat is ready.', reload:'Update', version:v=>`Version ${v}`,
   aboutText:'Your notes are stored only on this device, in this browser. They are not uploaded anywhere — back up regularly.',
-  offlineReady:'MemoChat now works offline.'
+  offlineReady:'MemoChat now works offline.',
+  saveTo:'Save to…', shareEmpty:'There was nothing to save in what was shared.', shareCancelled:'Sharing cancelled', chooseAgain:'Choose thread',
+  sharedExtra:n=>`Only the first photo was added (${n} more skipped).`
 });
 Object.assign(T.cs,{
   welcomeT:'Vítej v MemoChatu', welcomeSub:'Máš zálohu z prototypu? Obnov ji a poznámky se přenesou.', dismiss:'Zavřít',
   updateReady:'Je připravená nová verze MemoChatu.', reload:'Aktualizovat', version:v=>`Verze ${v}`,
   aboutText:'Poznámky jsou uložené jen v tomto zařízení, v tomto prohlížeči. Nikam se nenahrávají — pravidelně zálohuj.',
-  offlineReady:'MemoChat teď funguje i offline.'
+  offlineReady:'MemoChat teď funguje i offline.',
+  saveTo:'Uložit do…', shareEmpty:'Ve sdíleném obsahu nebylo nic k uložení.', shareCancelled:'Sdílení zrušeno', chooseAgain:'Vybrat vlákno',
+  sharedExtra:n=>`Přidala se jen první fotka (vynechané další: ${n}).`
 });
 function t(k,...a){ const L=T[S.settings.lang]||T.en; const v=L[k]!==undefined?L[k]:T.en[k]; return typeof v==='function'?v(...a):v; }
 function loc(){ return S.settings.lang==='cs'?'cs-CZ':'en-GB'; }
@@ -233,7 +237,7 @@ const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-'+Date.now().to
 let S = {threads:[],notes:[],settings:{}};
 const DEFAULT_SETTINGS = {theme:null, lang:'en', lastBackup:null, nudgeSnooze:null, recent:[], welcome:false};
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const DEFAULT_THREADS = [
   ['Inbox','📥','gray',{system:'inbox',pinned:true}],['Work','💼','blue'],['Home','🏠','purple'],['Shopping','🛒','pink'],['Ideas','💡','indigo'],
   ['Korean','🇰🇷','teal'],['Welsh','🏴󠁧󠁢󠁷󠁬󠁳󠁿','teal'],['Claude','✳️','slate'],['Copilot','🧭','slate'],['AI general','🤖','slate'],
@@ -316,6 +320,13 @@ const Store = {
       if(this.mode==='ls'){ const s=localStorage.getItem('memochat_state'); return s?JSON.parse(s):null; }
     }catch(e){}
     return null;
+  },
+  // read a value and delete it (used for content shared from other apps)
+  async take(key){
+    if(this.mode!=='idb') return null;
+    try{ return await new Promise((res,rej)=>{ const tx=this.db.transaction('kv','readwrite'), st=tx.objectStore('kv'); let v=null;
+      const r=st.get(key); r.onsuccess=()=>{ v=r.result||null; if(v!==null) st.delete(key); }; tx.oncomplete=()=>res(v); tx.onerror=()=>rej(tx.error); }); }
+    catch(e){ return null; }
   },
   async save(obj){
     try{
@@ -1009,10 +1020,10 @@ function overlay(html, center, onDismiss){
 }
 function closeOverlay(ov){ const i=overlays.indexOf(ov); if(i>=0) overlays.splice(i,1); ov.remove(); }
 function closeTopOverlay(){ const ov=overlays[overlays.length-1]; if(!ov) return false; closeOverlay(ov); ov._dismiss&&ov._dismiss(); return true; }
-function sheet(title, items, sub){
+function sheet(title, items, sub, onDismiss){
   const ov = overlay(`<div class="sheet" role="menu"><div class="grab"></div>${title?`<div class="sh-title">${esc(title)}</div>`:''}${sub?`<div class="sh-sub">${esc(sub)}</div>`:''}
     ${items.map((it,i)=>{ const inner=`<span class="ic">${it.icon||''}</span><span class="grow">${esc(it.label)}</span>${it.check?`<span class="chk">${I.checkL}</span>`:''}${it.right||''}`;
-      return it.href ? `<a class="mi" data-i="${i}" href="${esc(it.href)}" target="_blank" rel="noopener noreferrer">${inner}</a>` : `<button class="mi ${it.danger?'danger':''}" data-i="${i}" ${it.disabled?'disabled style="opacity:.4"':''}>${inner}</button>`; }).join('')}</div>`);
+      return it.href ? `<a class="mi" data-i="${i}" href="${esc(it.href)}" target="_blank" rel="noopener noreferrer">${inner}</a>` : `<button class="mi ${it.danger?'danger':''}" data-i="${i}" ${it.disabled?'disabled style="opacity:.4"':''}>${inner}</button>`; }).join('')}</div>`, false, onDismiss);
   ov.addEventListener('click',e=>{ const b=e.target.closest('[data-i]'); if(!b||b.disabled) return; const it=items[+b.dataset.i];
     if(it.href){ setTimeout(()=>{ closeOverlay(ov); it.fn&&it.fn(); },0); return; }
     closeOverlay(ov); it.fn(); });
@@ -1065,13 +1076,16 @@ function priMenu(ids){
   const cur = ids.length===1 ? note(ids[0]).priority : null;
   sheet(t('priority'), [3,2,1,0].map(p=>({icon:`<span class="pdot" style="background:var(--p${p})"></span>`, label:t('pri')[p], check:cur===p, fn:()=>{ setPriority(ids,p); if(ui.selecting) exitSelect(); }})));
 }
-function pickThread(ids, copy){
-  const cur=ui.threadId;
-  let list = activeThreads().filter(x=>x.id!==cur);
+// target threads for move/copy/share: Inbox first, then recently used, then the rest by activity
+function orderedTargets(excludeId){
+  const list = activeThreads().filter(x=>x.id!==excludeId);
   const recent = (S.settings.recent||[]).filter(id=>list.some(x=>x.id===id));
   const inbox = list.find(x=>x.system==='inbox');
   const rest = list.filter(x=>x!==inbox && !recent.includes(x.id)).sort((a,b)=>b.lastActivity-a.lastActivity);
-  const ordered = [...(inbox?[inbox]:[]), ...recent.map(id=>thread(id)).filter(x=>x!==inbox), ...rest];
+  return [...(inbox?[inbox]:[]), ...recent.map(id=>thread(id)).filter(x=>x!==inbox), ...rest];
+}
+function pickThread(ids, copy){
+  const ordered = orderedTargets(ui.threadId);
   const items = [{icon:I.newThread,label:t('newThread'),fn:async()=>{ const th=await newThread(); if(th) moveOrCopy(ids, th.id, copy); }}]
     .concat(ordered.map(th=>({icon:avatar(th,'xs'), label:th.name, fn:()=>moveOrCopy(ids, th.id, copy)})));
   sheet(copy?t('copyTo'):t('moveTo'), items);
@@ -1578,7 +1592,53 @@ document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==
   if(isWide()){ const inbox=S.threads.find(x=>x.system==='inbox'); ui.threadId=inbox.id; ui.showThread=true; }
   render();
   registerSW();
+  handleLaunch();
 })();
+
+/* =========================================================
+   Launch: icon shortcuts (?open=…) and sharing from other apps (?share=1)
+   ========================================================= */
+function handleLaunch(){
+  const q = new URLSearchParams(location.search);
+  if(!q.has('share') && !q.has('open')) return;
+  try{ history.replaceState(history.state, '', location.pathname); }catch(e){}
+  if(q.has('share')) return receiveShare();
+  const what = q.get('open'), act = activeThreads();
+  if(what==='search') return openSearch(null);
+  let th = what==='work' ? act.find(x=>!x.system && x.name.trim().toLowerCase()==='work') : null;
+  th = th || act.find(x=>x.system==='inbox');
+  if(th){ ui.left='list'; openThread(th.id); }
+}
+async function receiveShare(){
+  const sh = await Store.take('share'); if(!sh || typeof sh!=='object') return;
+  const title=str(sh.title,2000).trim(), text=str(sh.text).trim(), url=str(sh.url,5000).trim();
+  const parts=[];
+  if(title && !text.includes(title) && title!==url) parts.push(title);
+  if(text) parts.push(text);
+  if(url && !text.includes(url)) parts.push(url);
+  const body = parts.join('\n');
+  let photo = null; const f = Array.isArray(sh.files) ? sh.files[0] : null;
+  if(f instanceof Blob){ try{ photo = await downscale(f, 1280, .78); }catch(e){ console.warn('shared image failed', e); } }
+  const extra = num(sh.extraFiles, 0);
+  if(!body && !photo){ snack(t('shareEmpty')); return; }
+  // the shared content goes into the composer of the chosen thread, so a comment, priority or date can be added before sending
+  const deliver = id => {
+    if(!thread(id)) return;
+    S.settings.recent = [id, ...(S.settings.recent||[]).filter(x=>x!==id)].slice(0,5); persist();
+    ui.left='list'; openThread(id);
+    ui.comp.mode='text'; if(photo) ui.comp.photo=photo; ui.comp.editing=null; renderComposer(false);
+    const inp=$('#cInput');
+    if(inp){ inp.value = inp.value.trim() ? inp.value.replace(/\s+$/,'')+'\n'+body : body; autoGrow(inp); updateSend(); inp.focus(); try{ inp.setSelectionRange(inp.value.length, inp.value.length); }catch(e){} }
+    if(extra) snack(t('sharedExtra', extra));
+  };
+  const choose = () => {
+    const items = [{icon:I.newThread, label:t('newThread'), fn:async()=>{ const th=await newThread(); if(th) deliver(th.id); else choose(); }}]
+      .concat(orderedTargets(null).map(th=>({icon:avatar(th,'xs'), label:th.name, fn:()=>deliver(th.id)})));
+    const prev = (photo?'📷 ':'') + (body.split('\n')[0] || t('photoMsg'));
+    sheet(t('saveTo'), items, prev.length>90 ? prev.slice(0,90)+'…' : prev, ()=>snack(t('shareCancelled'), t('chooseAgain'), choose, 10000));
+  };
+  choose();
+}
 
 /* =========================================================
    Service worker: offline + updates

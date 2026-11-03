@@ -126,8 +126,8 @@ public class MainActivity extends Activity {
     @SuppressWarnings("deprecation")
     public void onBackPressed() {
         if (!pageReady) { moveTaskToBack(true); return; }
-        web.evaluateJavascript("(window.__mcBack&&window.__mcBack())?1:0", v -> {
-            if (!"1".equals(v)) moveTaskToBack(true);
+        web.evaluateJavascript("(window.__mcBack&&window.__mcBack())?1:0", new ValueCallback<String>() {
+            @Override public void onReceiveValue(String v) { if (!"1".equals(v)) moveTaskToBack(true); }
         });
     }
 
@@ -346,8 +346,8 @@ public class MainActivity extends Activity {
 
     void resolve(final String cb, final String jsValue) {
         if (cb == null) return;
-        runOnUiThread(() -> web.evaluateJavascript(
-                "window.__mcNativeResolve&&window.__mcNativeResolve(" + JSONObject.quote(cb) + "," + jsValue + ")", null));
+        runOnUiThread(new Runnable() { @Override public void run() { web.evaluateJavascript(
+                "window.__mcNativeResolve&&window.__mcNativeResolve(" + JSONObject.quote(cb) + "," + jsValue + ")", null); } });
     }
 
     boolean notificationsOn() {
@@ -417,13 +417,13 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void setBars(final String status, final String nav, final boolean dark) {
-            runOnUiThread(() -> MainActivity.this.setBars(status, nav, dark));
+            runOnUiThread(new Runnable() { @Override public void run() { MainActivity.this.setBars(status, nav, dark); } });
         }
 
         /* --- writing files: saveAs / folderWrite / cacheWrite give a token, then write…close --- */
         @JavascriptInterface
         public void saveAs(final String cb, final String name, final String mime) {
-            runOnUiThread(() -> {
+            runOnUiThread(new Runnable() { @Override public void run() {
                 if (saveCb != null) resolve(saveCb, "null");
                 saveCb = cb;
                 Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
@@ -432,7 +432,7 @@ public class MainActivity extends Activity {
                 i.putExtra(Intent.EXTRA_TITLE, safeName(name));
                 try { startActivityForResult(i, REQ_SAVE); }
                 catch (ActivityNotFoundException e) { saveCb = null; resolve(cb, "null"); }
-            });
+            } });
         }
 
         @JavascriptInterface
@@ -464,7 +464,7 @@ public class MainActivity extends Activity {
         /* --- weekly backup folder --- */
         @JavascriptInterface
         public void pickFolder(final String cb) {
-            runOnUiThread(() -> {
+            runOnUiThread(new Runnable() { @Override public void run() {
                 if (treeCb != null) resolve(treeCb, "null");
                 treeCb = cb;
                 Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
@@ -472,7 +472,7 @@ public class MainActivity extends Activity {
                         | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
                 try { startActivityForResult(i, REQ_TREE); }
                 catch (ActivityNotFoundException e) { treeCb = null; resolve(cb, "null"); }
-            });
+            } });
         }
 
         @JavascriptInterface
@@ -518,7 +518,9 @@ public class MainActivity extends Activity {
                     }
                 }
             } catch (Exception e) { return 0; }
-            Collections.sort(found, (a, b) -> Long.compare((Long) b[1], (Long) a[1]));
+            Collections.sort(found, new java.util.Comparator<Object[]>() {
+                @Override public int compare(Object[] a, Object[] b) { return Long.compare((Long) b[1], (Long) a[1]); }
+            });
             int deleted = 0;
             for (int k = Math.max(keep, 1); k < found.size(); k++) {
                 try {
@@ -548,7 +550,7 @@ public class MainActivity extends Activity {
         public void openCached(String token, final String mime, final String mode) {
             final String n = cacheNames.remove(token);
             if (n == null) return;
-            runOnUiThread(() -> {
+            runOnUiThread(new Runnable() { @Override public void run() {
                 Uri u = new Uri.Builder().scheme("content").authority(FilesProvider.AUTHORITY).appendPath(n).build();
                 String type = mime == null || mime.isEmpty() ? "application/octet-stream" : mime;
                 Intent i;
@@ -557,7 +559,7 @@ public class MainActivity extends Activity {
                        i.setClipData(ClipData.newRawUri("", u)); }
                 i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 try { startActivity(Intent.createChooser(i, null)); } catch (ActivityNotFoundException ignored) {}
-            });
+            } });
         }
 
         /* --- secrets (backup password), encrypted with a key kept in the Android Keystore --- */
@@ -579,26 +581,26 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void requestNotif(final String cb) {
-            runOnUiThread(() -> {
+            runOnUiThread(new Runnable() { @Override public void run() {
                 if (Build.VERSION.SDK_INT >= 33 && !notificationsOn()) {
                     notifCb = cb;
                     requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, REQ_NOTIF);
                 } else resolve(cb, notificationsOn() ? "true" : "false");
-            });
+            } });
         }
 
         @JavascriptInterface
         public void openNotifSettings() {
-            runOnUiThread(() -> {
+            runOnUiThread(new Runnable() { @Override public void run() {
                 Intent i = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
                 try { startActivity(i); } catch (ActivityNotFoundException ignored) {}
-            });
+            } });
         }
 
         /* --- updates: reads version.json of the latest GitHub release --- */
         @JavascriptInterface
         public void checkUpdate(final String cb) {
-            new Thread(() -> {
+            new Thread(new Runnable() { @Override public void run() {
                 String out = "null";
                 HttpURLConnection c = null;
                 try {
@@ -616,13 +618,13 @@ public class MainActivity extends Activity {
                 } catch (Exception ignored) {
                 } finally { if (c != null) c.disconnect(); }
                 resolve(cb, out);
-            }).start();
+            } }).start();
         }
 
         @JavascriptInterface
         public void openUrl(String url) {
             Uri u = Uri.parse(url);
-            if ("https".equals(u.getScheme())) runOnUiThread(() -> openExternal(u));
+            if ("https".equals(u.getScheme())) runOnUiThread(new Runnable() { @Override public void run() { openExternal(u); } });
         }
     }
 }

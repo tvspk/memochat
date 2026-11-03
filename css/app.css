@@ -309,3 +309,22 @@ mark{background:color-mix(in srgb,var(--gold) 45%,transparent);color:inherit;bor
 .snack .msg{overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
 .snack button{border:0;background:none;color:#D9B45A;font-weight:600;font-size:14px;padding:6px 8px;white-space:nowrap}
 [data-theme="dark"] .snack button{color:#2B4C7E}
+/* attachments */
+.agrid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.afile{display:flex;align-items:center;gap:8px;width:100%;max-width:340px;margin-top:6px;padding:8px 10px;border:1px solid var(--card-bd);border-radius:10px;background:var(--hover);color:var(--fg);text-align:left;font-size:14px}
+.afile svg{color:var(--accent)}
+.afile .anm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.afile small{color:var(--muted);font-size:12px;white-space:nowrap}
+.ppreview{flex-wrap:wrap;gap:8px;padding-top:6px}
+.achip{position:relative;display:flex;align-items:center;gap:6px;max-width:220px;padding:0;border-radius:8px}
+.achip img{width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--comp-bd)}
+.achip .aic{display:flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:8px;background:var(--input-bg);border:1px solid var(--comp-bd);color:var(--accent)}
+.achip .anm{display:flex;flex-direction:column;min-width:0;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg);font-size:13px;padding-right:18px}
+.achip .anm small{color:var(--muted);font-size:11px}
+.achip button{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:0;background:var(--fg);color:var(--bg);display:flex;align-items:center;justify-content:center;padding:0}
+.viewer{flex-direction:column;gap:8px}
+.viewer video{max-width:96vw;max-height:80vh;border-radius:6px;background:#000}
+.viewer audio{width:min(92vw,520px)}
+.vbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:4px;padding:8px 8px 8px 16px;color:#fff;background:linear-gradient(rgba(0,0,0,.6),transparent);cursor:default}
+.vbar .vname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.vbar .ib{color:#fff}

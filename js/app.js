@@ -83,6 +83,10 @@ const I = {
   bell: sv('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>'),
   gcal: sv('<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/>'),
   chev: sv('<path d="M6 9l6 6 6-6"/>',18),
+  clip: sv('<path d="M20 11.5l-7.8 7.8a5 5 0 0 1-7.1-7.1l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8"/>'),
+  film: sv('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4.5-2.5z"/>'),
+  music: sv('<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>'),
+  share: sv('<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/>'),
   dia: ''
 };
 function knot(){ return `<svg class="knot" height="18" aria-hidden="true"><rect width="100%" height="18" fill="url(#knotP)"/></svg>`; }
@@ -202,7 +206,11 @@ Object.assign(T.en,{
   aboutText:'Your notes are stored only on this device, in this browser. They are not uploaded anywhere — back up regularly.',
   offlineReady:'MemoChat now works offline.',
   saveTo:'Save to…', shareEmpty:'There was nothing to save in what was shared.', shareCancelled:'Sharing cancelled', chooseAgain:'Choose thread',
-  sharedExtra:n=>`Only the first photo was added (${n} more skipped).`
+  file:'File', bigFileT:'Large file', bigFile:(n,s)=>`“${n}” is ${s}. Save it anyway? Large files take space on this device and make backups bigger.`,
+  filesUnavailable:'Files can’t be stored in this browser.', fileSaveFail:'Couldn’t save the file. Is the device full?', fileMissing:'This file is no longer available.',
+  saveToDevice:'Save to device', openIn:'Open in another app…', close:'Close', storageUsed:s=>`Used on this device: ${s}`,
+  backupWorking:'Preparing the backup…', restoreWorking:(i,n)=>`Restoring files ${i} / ${n}…`, backupTooLarge:'The backup is larger than 4 GB, which isn’t supported yet.',
+  backupFailed:'The backup failed.', backupDamaged:'The backup file is damaged. Nothing was changed.', backupSub:'Notes and attachments (ZIP), optional password', attachments:'Attachments'
 });
 Object.assign(T.cs,{
   welcomeT:'Vítej v MemoChatu', welcomeSub:'Máš zálohu z prototypu? Obnov ji a poznámky se přenesou.', dismiss:'Zavřít',
@@ -210,7 +218,11 @@ Object.assign(T.cs,{
   aboutText:'Poznámky jsou uložené jen v tomto zařízení, v tomto prohlížeči. Nikam se nenahrávají — pravidelně zálohuj.',
   offlineReady:'MemoChat teď funguje i offline.',
   saveTo:'Uložit do…', shareEmpty:'Ve sdíleném obsahu nebylo nic k uložení.', shareCancelled:'Sdílení zrušeno', chooseAgain:'Vybrat vlákno',
-  sharedExtra:n=>`Přidala se jen první fotka (vynechané další: ${n}).`
+  file:'Soubor', bigFileT:'Velký soubor', bigFile:(n,s)=>`„${n}“ má ${s}. Přesto uložit? Velké soubory zabírají místo v zařízení a zvětšují zálohy.`,
+  filesUnavailable:'V tomto prohlížeči nejde ukládat soubory.', fileSaveFail:'Soubor se nepodařilo uložit. Není plné úložiště?', fileMissing:'Tento soubor už není k dispozici.',
+  saveToDevice:'Uložit do zařízení', openIn:'Otevřít v jiné aplikaci…', close:'Zavřít', storageUsed:s=>`Zabráno v zařízení: ${s}`,
+  backupWorking:'Připravuji zálohu…', restoreWorking:(i,n)=>`Obnovuji soubory ${i} / ${n}…`, backupTooLarge:'Záloha je větší než 4 GB, to zatím není podporováno.',
+  backupFailed:'Zálohu se nepodařilo vytvořit.', backupDamaged:'Soubor zálohy je poškozený. Nic se nezměnilo.', backupSub:'Poznámky i přílohy (ZIP), volitelně s heslem', attachments:'Přílohy'
 });
 function t(k,...a){ const L=T[S.settings.lang]||T.en; const v=L[k]!==undefined?L[k]:T.en[k]; return typeof v==='function'?v(...a):v; }
 function loc(){ return S.settings.lang==='cs'?'cs-CZ':'en-GB'; }
@@ -237,7 +249,7 @@ const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-'+Date.now().to
 let S = {threads:[],notes:[],settings:{}};
 const DEFAULT_SETTINGS = {theme:null, lang:'en', lastBackup:null, nudgeSnooze:null, recent:[], welcome:false};
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const DEFAULT_THREADS = [
   ['Inbox','📥','gray',{system:'inbox',pinned:true}],['Work','💼','blue'],['Home','🏠','purple'],['Shopping','🛒','pink'],['Ideas','💡','indigo'],
   ['Korean','🇰🇷','teal'],['Welsh','🏴󠁧󠁢󠁷󠁬󠁳󠁿','teal'],['Claude','✳️','slate'],['Copilot','🧭','slate'],['AI general','🤖','slate'],
@@ -268,6 +280,9 @@ function cleanDue(d){
   else if(!['at','15m','1h','1d','morning','none'].includes(remind)) remind = undefined;
   const o = {date:d.date, time}; if(remind!==undefined) o.remind=remind; return o;
 }
+const RE_MIME = /^[a-z0-9][a-z0-9!#$&^_.+-]{0,63}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,99}$/i;
+function cleanType(v){ return (typeof v==='string' && RE_MIME.test(v)) ? v.toLowerCase() : 'application/octet-stream'; }
+function cleanName(v){ return typeof v==='string' ? v.replace(/[\u0000-\u001f\u007f\/\\]/g,'').trim().slice(0,200) : ''; }
 function sanitizeData(data){
   const idMap = new Map();
   // valid ids are kept; invalid string ids are remapped consistently (thread ↔ note links survive); missing ids get a fresh one
@@ -288,7 +303,9 @@ function sanitizeData(data){
       createdAt:num(n.createdAt,Date.now()), editedAt:num(n.editedAt),
       history:(Array.isArray(n.history)?n.history:[]).filter(v=>v&&typeof v==='object').map(v=>({type:v.type==='list'?'list':'text', text:str(v.text), title:str(v.title,2000),
         items:(Array.isArray(v.items)?v.items:[]).filter(i=>i&&typeof i==='object').map(i=>({id:fixId(i.id), text:str(i.text,5000), done:!!i.done})), at:num(v.at,Date.now())})),
-      deletedAt:num(n.deletedAt), due:cleanDue(n.due)
+      deletedAt:num(n.deletedAt), due:cleanDue(n.due),
+      attachments:(Array.isArray(n.attachments)?n.attachments:[]).filter(a=>a && typeof a==='object' && typeof a.id==='string' && RE_ID.test(a.id)).map(a=>({
+        id:a.id, name:cleanName(a.name)||'file', type:cleanType(a.type), size:num(a.size,0), thumb:(typeof a.thumb==='string' && RE_PHOTO.test(a.thumb)) ? a.thumb : null }))
     };
     if(num(n.remindFired)!==null) o.remindFired = n.remindFired;
     if(n.cal && typeof n.cal==='object' && RE_DATE.test(n.cal.date||'')) o.cal = {date:n.cal.date, time:RE_TIME.test(n.cal.time||'')?n.cal.time:null};
@@ -307,7 +324,10 @@ const Store = {
   mode:'memory', db:null,
   async init(){
     try{
-      this.db = await new Promise((res,rej)=>{ const r=indexedDB.open('memochat',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); setTimeout(()=>rej('timeout'),3000); });
+      // v1: 'kv' (app state, pending share) · v2: + 'files' (attachment blobs, key = attachment id)
+      this.db = await new Promise((res,rej)=>{ const r=indexedDB.open('memochat',2);
+        r.onupgradeneeded=()=>{ const db=r.result; if(!db.objectStoreNames.contains('kv')) db.createObjectStore('kv'); if(!db.objectStoreNames.contains('files')) db.createObjectStore('files'); };
+        r.onsuccess=()=>{ const db=r.result; db.onversionchange=()=>db.close(); res(db); }; r.onerror=()=>rej(r.error); setTimeout(()=>rej('timeout'),5000); });
       this.mode='idb';
       try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
       return;
@@ -328,6 +348,13 @@ const Store = {
       const r=st.get(key); r.onsuccess=()=>{ v=r.result||null; if(v!==null) st.delete(key); }; tx.oncomplete=()=>res(v); tx.onerror=()=>rej(tx.error); }); }
     catch(e){ return null; }
   },
+  // attachment blobs (rejects on failure, e.g. device full)
+  _files(mode, fn){ return new Promise((res,rej)=>{ if(this.mode!=='idb') return rej(new Error('no-idb')); const tx=this.db.transaction('files',mode); let out;
+    const r=fn(tx.objectStore('files')); if(r) r.onsuccess=()=>{ out=r.result; }; tx.oncomplete=()=>res(out); tx.onerror=()=>rej(tx.error); tx.onabort=()=>rej(tx.error||new Error('abort')); }); },
+  putFile(id, blob){ return this._files('readwrite', st=>st.put(blob, id)); },
+  getFile(id){ return this._files('readonly', st=>st.get(id)); },
+  fileKeys(){ return this._files('readonly', st=>st.getAllKeys()); },
+  deleteFiles(ids){ return this._files('readwrite', st=>{ ids.forEach(id=>st.delete(id)); }); },
   async save(obj){
     try{
       if(this.mode==='idb') return await new Promise((res,rej)=>{ const tx=this.db.transaction('kv','readwrite'); tx.objectStore('kv').put(obj,'state'); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); });
@@ -384,12 +411,19 @@ function noteText(n){
   if(n.type==='list'){ return [n.title, ...n.items.map(i=>(i.done?'☑ ':'☐ ')+i.text)].filter(Boolean).join('\n'); }
   return n.text||'';
 }
+function attSummary(n){
+  const a=n.attachments||[]; if(!a.length) return '';
+  return (a[0].thumb?'📷 ':'📎 ') + a[0].name + (a.length>1 ? ` +${a.length-1}` : '');
+}
 function preview(n){
   if(!n) return '';
   if(n.type==='list') return '☑ '+(n.title || n.items.map(i=>i.text).join(', '));
   if(n.photo) return '📷 '+(n.text || t('photoMsg'));
+  if(!n.text && (n.attachments||[]).length) return attSummary(n);
+  if((n.attachments||[]).length) return (n.attachments[0].thumb?'📷 ':'📎 ')+n.text;
   return n.text;
 }
+function searchText(n){ return noteText(n)+' '+(n.attachments||[]).map(a=>a.name).join(' '); }
 function colorOf(c){ if(!c) return null; return COLORS[c] || (/^#[0-9a-f]{6}$/i.test(c)?c:null); }
 // no colour + no emoji = default look of the theme (gold triskele / porcelain moon jar)
 function avatar(th, cls='lg'){
@@ -437,7 +471,7 @@ function dueChip(n){
 }
 function dueNotes(){ return S.notes.filter(n=>n.due && !n.deletedAt && thread(n.threadId) && !thread(n.threadId).deletedAt && !thread(n.threadId).archived); }
 function dueBadge(){ return dueNotes().filter(n=>!n.done && (isOverdue(n) || dueDiff(n.due)===0)).length; }
-function noteSnippet(n){ return (n.type==='list' ? (n.title || n.items.map(i=>i.text).join(', ')) : (n.text || (n.photo?'📷 '+t('photoMsg'):''))).split('\n')[0]; }
+function noteSnippet(n){ return (n.type==='list' ? (n.title || n.items.map(i=>i.text).join(', ')) : (n.text || (n.photo?'📷 '+t('photoMsg'):attSummary(n)))).split('\n')[0]; }
 
 function counts(tid){ const ns=liveNotes(tid); return {total:ns.length, open:ns.filter(n=>!n.done).length, red:ns.filter(n=>!n.done&&n.priority===3).length}; }
 
@@ -450,7 +484,7 @@ const ui = {
   selecting:false, sel:new Set(),
   filter:null,            // null | Set of priorities
   pinIdx:0,
-  comp:{pri:1, mode:'text', photo:null, editing:null},
+  comp:{pri:1, mode:'text', photo:null, atts:[], editing:null},
   search:{q:'', scope:null, pri:new Set(), done:true, from:null},
 };
 let navDepth = 0;
@@ -558,11 +592,11 @@ function renderSearchResults(){
   if(sc.scope) ns = ns.filter(n=>n.threadId===sc.scope);
   if(sc.pri.size) ns = ns.filter(n=>sc.pri.has(n.priority));
   if(!sc.done) ns = ns.filter(n=>!n.done);
-  if(q) ns = ns.filter(n=>noteText(n).toLowerCase().includes(q));
+  if(q) ns = ns.filter(n=>searchText(n).toLowerCase().includes(q));
   ns.sort((a,b)=>b.createdAt-a.createdAt);
   let h='';
   if(ths.length){ h+=`<div class="section-h">${t('resThreads')}</div>`+ths.map(th=>`<div class="trow" data-tid="${th.id}">${avatar(th,'sm')}<div class="tmain" style="border:0;margin:0;padding:0"><div class="tname">${hl(th.name)}${th.archived?` <span style="font-size:12px;color:var(--muted);font-weight:400">· ${t('archived')}</span>`:''}</div></div></div>`).join(''); }
-  if(ns.length){ h+=`<div class="section-h">${t('resNotes')} · ${ns.length}</div>`+ns.slice(0,200).map(n=>{ const th=thread(n.threadId); let txt=noteText(n)||(n.photo?t('photoMsg'):'');
+  if(ns.length){ h+=`<div class="section-h">${t('resNotes')} · ${ns.length}</div>`+ns.slice(0,200).map(n=>{ const th=thread(n.threadId); let txt=noteText(n)||(n.photo?t('photoMsg'):attSummary(n));
     if(q){ const i=txt.toLowerCase().indexOf(q); if(i>60) txt='…'+txt.slice(i-40); }
     return `<div class="res ${n.done?'dn':''}" data-nid="${n.id}"><span class="stripe" style="background:var(--p${n.priority})"></span><div class="rmain"><div class="rhead">${esc(th.emoji||'')} <b>${esc(th.name)}</b>${th.archived?' · '+t('archived'):''} · ${shortWhen(n.createdAt)}${n.done?' · '+t('done'):''}</div><div class="rtext">${hl(txt)}</div></div></div>`; }).join(''); }
   box.innerHTML = h || `<div class="empty">${t('noRes')}</div>`;
@@ -577,7 +611,7 @@ function renderTrash(){
     <div class="scroll">${items.length?`<div class="section-h">${t('trashInfo')}</div>`:''}${items.map(n=>{
       const th = thread(n.threadId); const left = n.deletedAt + 30*DAY - now; const days = Math.ceil(left/DAY);
       return `<div class="titem"><span class="stripe" style="background:var(--p${n.priority})"></span><div class="tm">
-        <div class="tx">${esc(noteText(n)|| (n.photo?'📷 '+t('photoMsg'):''))}</div>
+        <div class="tx">${esc(noteText(n)|| (n.photo?'📷 '+t('photoMsg'):attSummary(n)))}</div>
         <div class="info">${th?esc(((th.emoji||'')+' '+th.name).trim())+' · ':''}${shortWhen(n.createdAt)} · ${left<DAY?`<span class="warn">${t('todayForever')}</span>`:t('daysLeft',days)}</div>
         <div class="acts"><button class="btn" data-act="t-restore" data-nid="${n.id}">${t('restore')}</button><button class="btn danger" data-act="t-forever" data-nid="${n.id}">${t('delForever')}</button></div>
       </div></div>`; }).join('') || `<div class="empty">${t('trashEmpty')}</div>`}</div>`;
@@ -609,9 +643,11 @@ function renderSettings(){
       <button class="it" data-act="import"><span class="ic">${I.upload}</span><div class="grow">${t('restoreFile')}<div class="small">${t('restoreSub')}</div></div></button>
       <button class="it" data-act="export-md"><span class="ic">${I.doc}</span><div class="grow">${t('exportMd')}<div class="small">${t('exportMdSub')}</div></div></button>
     </div>
+    <div class="grp"><div class="it"><div class="grow small" style="margin:0" id="stUse">&nbsp;</div></div></div>
     <div class="section-h">${t('about')}</div>
     <div class="grp"><div class="it"><div class="grow small" style="margin:0">${t('aboutText')}<br>${t('version', APP_VERSION)}</div></div></div>
   </div>`;
+  try{ navigator.storage.estimate().then(e=>{ const el=$('#stUse'); if(el) el.textContent=t('storageUsed', fmtSize(e.usage||0)); }).catch(()=>{}); }catch(e){}
 }
 
 /* ---------- right pane (thread) ---------- */
@@ -660,7 +696,7 @@ function renderPinbar(){
   if(!ps.length){ slot.innerHTML=''; return; }
   if(ui.pinIdx>=ps.length) ui.pinIdx=0;
   const n = ps[ui.pinIdx];
-  const txt = (n.type==='list'?(n.title||n.items.map(i=>i.text).join(', ')):(n.text||t('photoMsg'))).split('\n')[0];
+  const txt = (n.type==='list'?(n.title||n.items.map(i=>i.text).join(', ')):(n.text||attSummary(n)||t('photoMsg'))).split('\n')[0];
   slot.innerHTML = `<div class="pinbar" data-act="pinbar">${I.pin}<span><b>${t('pinned')}${ps.length>1?` ${ui.pinIdx+1}/${ps.length}`:''}</b> · ${esc(txt)}</span></div>`;
 }
 function renderFilterbar(){
@@ -699,12 +735,21 @@ function noteHTML(n, dropcap){
     body += n.items.map(it=>`<div class="litem ${it.done?'ck':''}" data-item="${it.id}"><span class="box">${it.done?I.checkS:''}</span><span>${linkify(it.text)}</span></div>`).join('');
   } else if(n.text){
     let txt = linkify(n.text);
-    const m = dropcap && !n.photo && n.text.match(/^([A-Za-zÀ-ž][^\s]*)([\s\S]*)$/);
+    const m = dropcap && !n.photo && !(n.attachments||[]).some(a=>a.thumb) && n.text.match(/^([A-Za-zÀ-ž][^\s]*)([\s\S]*)$/);
     if(m && !/^(https?:|www\.)/i.test(n.text)){ txt = `<span class="smcap">${esc(m[1])}</span>` + linkify(m[2]); }
     body += `<p class="txt">${txt}</p>`;
   }
   // photo = small thumbnail beside the text; tap opens full size
   if(n.photo) body = `<div class="prow"><img class="photo" src="${n.photo}" alt="" data-act="view-photo">${body?`<div class="ptext">${body}</div>`:''}</div>`;
+  // attachments: one picture sits beside the text like the old photo; several pictures form a row of thumbnails; other files are chips
+  const atts = n.attachments||[];
+  if(atts.length){
+    const pics = atts.filter(a=>a.thumb), files = atts.filter(a=>!a.thumb);
+    const thumb = a => `<img class="photo" src="${a.thumb}" alt="${esc(a.name)}" title="${esc(a.name)}" data-act="view-att" data-aid="${a.id}">`;
+    const chips = files.map(a=>`<button class="afile" data-act="view-att" data-aid="${a.id}">${fileIcon(a.type)}<span class="anm">${esc(a.name)}</span><small>${fmtSize(a.size)}</small></button>`).join('');
+    if(pics.length===1 && !n.photo) body = `<div class="prow">${thumb(pics[0])}<div class="ptext">${body}${chips}</div></div>`;
+    else body = (pics.length?`<div class="agrid">${pics.map(thumb).join('')}</div>`:'') + body + chips;
+  }
   const meta = [];
   if(n.pinned) meta.push(I.pinS);
   if(n.editedAt) meta.push(`<span class="edited" data-act="history">${t('edited')}</span>`);
@@ -756,8 +801,12 @@ function renderComposer(fresh){
   if(c.editing){ const n=note(c.editing); eb.classList.remove('hidden'); eb.innerHTML = `${I.edit}<span class="grow"><b>${t('editing')}</b> · ${esc(preview(n)||'')}</span><button class="linkbtn" data-act="cancel-edit">${t('cancel')}</button>`; }
   else eb.classList.add('hidden');
   const pp=$('#cPhoto');
-  if(c.photo){ pp.classList.remove('hidden'); pp.innerHTML = `<img src="${c.photo}" alt=""><span style="flex:1">${t('photo')}</span><button class="linkbtn" data-act="comp-photo-x">${t('clear')}</button>`; }
-  else pp.classList.add('hidden');
+  if(c.photo || c.atts.length){
+    pp.classList.remove('hidden');
+    pp.innerHTML = (c.photo?`<div class="achip"><img src="${c.photo}" alt=""><button data-act="comp-photo-x" aria-label="${t('clear')}">${I.xS}</button></div>`:'')
+      + c.atts.map((a,i)=>`<div class="achip">${a.thumb?`<img src="${a.thumb}" alt="">`:`<span class="aic">${fileIcon(a.type)}</span><span class="anm">${esc(a.name)}<small>${fmtSize(a.size)}</small></span>`}<button data-act="comp-att-x" data-ai="${i}" aria-label="${t('clear')}">${I.xS}</button></div>`).join('');
+  }
+  else { pp.classList.add('hidden'); pp.innerHTML=''; }
   $('#cSend').innerHTML = c.editing ? I.checkL : I.send;
   updateSend();
 }
@@ -812,9 +861,9 @@ document.addEventListener('pointermove', e=>{
   S.settings.kbOffset=Math.round(v); applyKb();
 }, true);
 document.addEventListener('pointerup', e=>{ if(kbDrag && e.pointerId===kbDrag.pid){ kbDrag=null; persist(); const i=$('#cInput'); if(i && !isComposerFocused()) i.focus(); } }, true);
-function updateSend(){ const b=$('#cSend'), i=$('#cInput'); if(!b||!i) return; b.disabled = !i.value.trim() && !ui.comp.photo && !($('#cTitle')&&$('#cTitle').value.trim()); }
+function updateSend(){ const b=$('#cSend'), i=$('#cInput'); if(!b||!i) return; b.disabled = !!ui.sending || (!i.value.trim() && !ui.comp.photo && !ui.comp.atts.length && !($('#cTitle')&&$('#cTitle').value.trim())); }
 function resetComposer(){
-  ui.comp = {pri:1, mode:'text', photo:null, editing:null, due:null};
+  ui.comp = {pri:1, mode:'text', photo:null, atts:[], editing:null, due:null};
   const i=$('#cInput'); if(i){ i.value=''; autoGrow(i); } const tl=$('#cTitle'); if(tl) tl.value='';
 }
 
@@ -822,43 +871,60 @@ function resetComposer(){
    Actions: notes
    ========================================================= */
 function parseItems(raw){ return raw.split('\n').map(s=>s.replace(/^\s*(\[[ xX]?\]|[-*•☐☑])\s*/,'').trim()).filter(Boolean); }
-function sendNote(){
+// write new attachment blobs to the database; returns the metadata to keep in the note (null on failure)
+async function storeCompAtts(c=ui.comp){
+  try{ for(const a of c.atts){ if(a.blob){ await Store.putFile(a.id, a.blob); delete a.blob; } } }
+  catch(e){ console.warn('file save failed', e); snack(t('fileSaveFail')); return null; }
+  return c.atts.map(a=>({id:a.id, name:a.name, type:a.type, size:a.size, thumb:a.thumb||null}));
+}
+async function sendNote(){
+  if(ui.sending) return;
+  ui.sending=true;
+  try{ await sendNoteNow(); } finally { ui.sending=false; updateSend(); }
+}
+async function sendNoteNow(){
   const th=thread(ui.threadId); if(!th || th.archived) return;
+  const tid=th.id;
   const inp=$('#cInput'), raw=inp.value, c=ui.comp, title=($('#cTitle').value||'').trim();
   if(c.mode==='list'){
     const items=parseItems(raw);
-    if(!items.length && !title){ snack(t('emptyNote')); return; }
+    if(!items.length && !title && !c.atts.length){ snack(t('emptyNote')); return; }
+    const attachments = await storeCompAtts(c); if(!attachments) return;
     if(c.editing){
-      const n=note(c.editing); pushHistory(n);
+      const n=note(c.editing); if(!n) return; pushHistory(n);
       const old = n.items||[];
-      n.type='list'; n.title=title; n.items=items.map(x=>{ const o=old.find(i=>i.text===x); return {id:o?o.id:uid(), text:x, done:o?o.done:false}; }); if(n.done && n.items.some(i=>!i.done && !old.some(o=>o.text===i.text))){ n.done=false; n.doneAt=null; } n.text=''; n.photo=c.photo; n.priority=c.pri; n.due=c.due||null; n.editedAt=Date.now();
-      finishEdit(n); return;
+      n.type='list'; n.title=title; n.items=items.map(x=>{ const o=old.find(i=>i.text===x); return {id:o?o.id:uid(), text:x, done:o?o.done:false}; }); if(n.done && n.items.some(i=>!i.done && !old.some(o=>o.text===i.text))){ n.done=false; n.doneAt=null; } n.text=''; n.photo=c.photo; n.attachments=attachments; n.priority=c.pri; n.due=c.due||null; n.editedAt=Date.now();
+      finishEdit(n, c); return;
     }
-    addNote({type:'list', title, items:items.map(x=>({id:uid(),text:x,done:false}))});
+    addNote({threadId:tid, type:'list', title, items:items.map(x=>({id:uid(),text:x,done:false})), attachments}, c);
   } else {
     const text=raw.replace(/\s+$/,'').replace(/^\n+/,'');
-    if(!text.trim() && !c.photo){ return; }
+    if(!text.trim() && !c.photo && !c.atts.length){ return; }
+    const attachments = await storeCompAtts(c); if(!attachments) return;
     if(c.editing){
-      const n=note(c.editing); pushHistory(n);
-      n.type='text'; n.text=text; n.title=''; n.items=[]; n.photo=c.photo; n.priority=c.pri; n.due=c.due||null; n.editedAt=Date.now();
-      finishEdit(n); return;
+      const n=note(c.editing); if(!n) return; pushHistory(n);
+      n.type='text'; n.text=text; n.title=''; n.items=[]; n.photo=c.photo; n.attachments=attachments; n.priority=c.pri; n.due=c.due||null; n.editedAt=Date.now();
+      finishEdit(n, c); return;
     }
-    addNote({type:'text', text});
+    addNote({threadId:tid, type:'text', text, attachments}, c);
   }
 }
-function addNote(o){
-  const n = Object.assign({id:uid(), threadId:ui.threadId, type:'text', text:'', title:'', items:[], photo:ui.comp.photo, priority:ui.comp.pri, due:ui.comp.due||null, done:false, doneAt:null, pinned:false, pinnedAt:null, createdAt:Date.now(), editedAt:null, history:[], deletedAt:null}, o);
-  S.notes.push(n); bumpActivity(ui.threadId);
-  resetComposer(); commit();
-  const box=$('#msgs'); if(box) box.scrollTop=box.scrollHeight;
-  $('#cInput') && isFine() && $('#cInput').focus();
+// c = the composer state the note was written in; if the user has meanwhile opened another thread
+// (saving large files takes a moment), the note still goes to its own thread and the new composer is left alone
+function addNote(o, c=ui.comp){
+  const n = Object.assign({id:uid(), threadId:ui.threadId, type:'text', text:'', title:'', items:[], photo:c.photo, attachments:[], priority:c.pri, due:c.due||null, done:false, doneAt:null, pinned:false, pinnedAt:null, createdAt:Date.now(), editedAt:null, history:[], deletedAt:null}, o);
+  S.notes.push(n); bumpActivity(n.threadId);
+  const same = ui.comp===c;
+  if(same) resetComposer();
+  commit();
+  if(same){ const box=$('#msgs'); if(box) box.scrollTop=box.scrollHeight; $('#cInput') && isFine() && $('#cInput').focus(); }
 }
 function pushHistory(n){ n.history = n.history||[]; n.history.push({type:n.type, text:n.text, title:n.title, items:JSON.parse(JSON.stringify(n.items||[])), at:n.editedAt||n.createdAt}); }
-function finishEdit(n){ bumpActivity(n.threadId); resetComposer(); commit(); flash([n.id]); calCheck(n,'change'); }
+function finishEdit(n, c=ui.comp){ bumpActivity(n.threadId); if(ui.comp===c) resetComposer(); commit(); flash([n.id]); calCheck(n,'change'); }
 function startEdit(id){
   const n=note(id); if(!n) return;
   exitSelect(true);
-  ui.comp = {pri:n.priority, mode:n.type==='list'?'list':'text', photo:n.photo, editing:id, due:n.due?Object.assign({},n.due):null};
+  ui.comp = {pri:n.priority, mode:n.type==='list'?'list':'text', photo:n.photo, atts:(n.attachments||[]).map(a=>Object.assign({},a)), editing:id, due:n.due?Object.assign({},n.due):null};
   renderComposer(false);
   const inp=$('#cInput');
   inp.value = n.type==='list' ? n.items.map(i=>i.text).join('\n') : n.text;
@@ -1314,8 +1380,8 @@ function restoreNote(id){
   snack(t('restoredTo', th.name), t('show'), ()=>{ ui.left='list'; openThread(th.id,{flash:[n.id]}); });
   render();
 }
-async function forever(id){ if(!await confirmDlg(t('delForever'), t('confirmDelForever'), t('delForever'), true)) return; S.notes=S.notes.filter(n=>n.id!==id); purgeTrash(); commit(); }
-async function emptyTrash(){ if(!await confirmDlg(t('emptyTrash'), t('confirmEmpty'), t('emptyTrash'), true)) return; S.notes=S.notes.filter(n=>!n.deletedAt); purgeTrash(); commit(); }
+async function forever(id){ if(!await confirmDlg(t('delForever'), t('confirmDelForever'), t('delForever'), true)) return; S.notes=S.notes.filter(n=>n.id!==id); purgeTrash(); commit(); gcFiles(); }
+async function emptyTrash(){ if(!await confirmDlg(t('emptyTrash'), t('confirmEmpty'), t('emptyTrash'), true)) return; S.notes=S.notes.filter(n=>!n.deletedAt); purgeTrash(); commit(); gcFiles(); }
 
 /* =========================================================
    History
@@ -1335,10 +1401,84 @@ function showHistory(id){
    Photos
    ========================================================= */
 function pickPhoto(){ const fi=$('#photoInput'); fi.value=''; fi.click(); }
-$('#photoInput').addEventListener('change', async e=>{
-  const f=e.target.files[0]; if(!f) return;
-  try{ ui.comp.photo = await downscale(f, 1280, .78); if(ui.comp.mode==='list'){} renderComposer(false); $('#cInput').focus(); }catch(err){ snack('Image error'); }
-});
+function pickFile(){ const fi=$('#fileInput'); fi.value=''; fi.click(); }
+['#photoInput','#fileInput'].forEach(sel=>$(sel).addEventListener('change', async e=>{
+  const files=[...e.target.files]; if(!files.length) return;
+  await addFilesToComposer(files); const i=$('#cInput'); if(i) i.focus();
+}));
+
+/* =========================================================
+   Attachments: original files, stored separately from the notes
+   ========================================================= */
+const BIG_FILE = 100*1024*1024;
+const IMG_TYPES = /^image\/(jpeg|png|webp|gif|avif|bmp)$/;
+function fmtSize(b){
+  const u=['B','kB','MB','GB']; let i=0, v=b||0; while(v>=1024 && i<u.length-1){ v/=1024; i++; }
+  return (i?v.toLocaleString(loc(),{maximumFractionDigits:v<10?1:0}):v)+' '+u[i];
+}
+function fileIcon(type){ return /^image\//.test(type)?I.image : /^video\//.test(type)?I.film : /^audio\//.test(type)?I.music : I.doc; }
+function defaultName(type){
+  const ext = {'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif','video/mp4':'mp4','audio/mpeg':'mp3','application/pdf':'pdf','text/plain':'txt'}[type] || 'bin';
+  const d=new Date(); return `memochat-${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}-${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}.${ext}`;
+}
+async function addFilesToComposer(files){
+  if(Store.mode!=='idb'){ snack(t('filesUnavailable')); return; }
+  for(const f of files){
+    if(!(f instanceof Blob)) continue;
+    const type=cleanType(f.type), name=cleanName(f.name)||defaultName(type);
+    if(f.size > BIG_FILE && !await confirmDlg(t('bigFileT'), t('bigFile', name, fmtSize(f.size)), t('save'))) continue;
+    let thumb=null; if(IMG_TYPES.test(type)){ try{ thumb = await downscale(f, 320, .8); }catch(e){ thumb=null; } }
+    ui.comp.atts.push({id:uid(), name, type, size:f.size, thumb, blob:f});
+  }
+  renderComposer(false);
+}
+async function attBlob(aid){ try{ return await Store.getFile(aid); }catch(e){ return null; } }
+function findAtt(nid, aid){ const n=note(nid); return n && (n.attachments||[]).find(a=>a.id===aid); }
+async function openAtt(nid, aid){
+  const a=findAtt(nid, aid); if(!a) return;
+  const blob=await attBlob(aid); if(!blob){ snack(t('fileMissing')); return; }
+  const typed = blob.type===a.type ? blob : new Blob([blob], {type:a.type});
+  if(IMG_TYPES.test(a.type) || /^(video|audio)\//.test(a.type)) return mediaViewer(typed, a);
+  fileMenu(typed, a);
+}
+function canShareFile(file){ try{ return !!(navigator.canShare && navigator.canShare({files:[file]})); }catch(e){ return false; } }
+async function shareAtt(blob, a){
+  const file=new File([blob], a.name, {type:a.type});
+  try{ await navigator.share({files:[file], title:a.name}); }catch(e){ if(e && e.name!=='AbortError') snack(t('copyFail')); }
+}
+function fileMenu(blob, a){
+  const items=[{icon:I.download, label:t('saveToDevice'), fn:()=>saveFile(a.name, blob)}];
+  if(canShareFile(new File([blob], a.name, {type:a.type}))) items.push({icon:I.share, label:t('openIn'), fn:()=>shareAtt(blob,a)});
+  sheet(a.name, items, fmtSize(a.size)+' · '+a.type);
+}
+// full-size picture, or a player for video and audio; buttons to save or open elsewhere
+function mediaViewer(blob, a){
+  const url=URL.createObjectURL(blob);
+  const v=document.createElement('div'); v.className='viewer';
+  const media = IMG_TYPES.test(a.type) ? `<img src="${url}" alt="${esc(a.name)}">`
+    : /^video\//.test(a.type) ? `<video src="${url}" controls autoplay playsinline></video>` : `<audio src="${url}" controls autoplay></audio>`;
+  v.innerHTML = `<div class="vbar"><span class="vname">${esc(a.name)} · ${fmtSize(a.size)}</span>
+    <button class="ib" data-v="save" aria-label="${t('saveToDevice')}" title="${t('saveToDevice')}">${I.download}</button>
+    ${canShareFile(new File([blob], a.name, {type:a.type}))?`<button class="ib" data-v="share" aria-label="${t('openIn')}" title="${t('openIn')}">${I.share}</button>`:''}
+    <button class="ib" data-v="close" aria-label="${t('close')}" title="${t('close')}">${I.x}</button></div>${media}`;
+  const close=()=>{ v.remove(); const i=overlays.indexOf(v); if(i>=0) overlays.splice(i,1); URL.revokeObjectURL(url); };
+  v._dismiss=()=>URL.revokeObjectURL(url);
+  v.addEventListener('click', e=>{ const b=e.target.closest('[data-v]');
+    if(b){ e.stopPropagation(); if(b.dataset.v==='save') saveFile(a.name, blob); else if(b.dataset.v==='share') shareAtt(blob,a); else close(); return; }
+    if(e.target===v || e.target.tagName==='IMG') close(); });
+  overlays.push(v); document.body.appendChild(v);
+}
+// delete stored files that no note (including notes in Trash) and no draft refers to
+async function gcFiles(){
+  if(Store.mode!=='idb') return;
+  try{
+    const keys=await Store.fileKeys();
+    // references are collected only after reading the keys, so a file saved meanwhile is never mistaken for an orphan
+    const used=new Set(); S.notes.forEach(n=>(n.attachments||[]).forEach(a=>used.add(a.id))); (ui.comp.atts||[]).forEach(a=>used.add(a.id));
+    const dead=keys.filter(k=>!used.has(k));
+    if(dead.length) await Store.deleteFiles(dead);
+  }catch(e){ console.warn('gc failed', e); }
+}
 function downscale(file, max, q){
   return new Promise((res,rej)=>{
     const url=URL.createObjectURL(file); const img=new Image();
@@ -1357,19 +1497,119 @@ function viewPhoto(src){ if(typeof src!=='string' || !RE_PHOTO.test(src)) return
 const b64 = u8 => { let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(s); };
 const unb64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
 async function deriveKey(pw, salt, iter){ const base=await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']); return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:iter, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']); }
+/* ---------- Backup format 2: a ZIP file (stored, no compression) ----------
+   memochat.json        {app:'MemoChat', format:2, createdAt, encrypted, [kdf, iterations, salt]}
+   data.json(.enc)      {threads, notes, settings} — same shape as format 1
+   files/<id>(.enc)     original attachment bytes
+   Encrypted entries are a sequence of records: [12-byte IV][4-byte length, big-endian][AES-GCM ciphertext],
+   each record ≤ 4 MiB of plaintext, with "<entry name>|<record no>|<last?1:0>" as additional data, so records
+   can't be reordered, swapped between files or cut off unnoticed. Format-1 JSON backups can still be restored. */
+const ENC_CHUNK = 4*1024*1024;
+const CRC_T = (()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u8, prev=0){ let c=~prev; for(let i=0;i<u8.length;i++) c=CRC_T[(c^u8[i])&0xff]^(c>>>8); return (~c)>>>0; }
+class ZipWriter {
+  constructor(){ this.parts=[]; this.pend=[]; this.pendSize=0; this.offset=0; this.cd=[]; const d=new Date();
+    this.time=(d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1); this.date=((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate(); }
+  _out(u8){ this.pend.push(u8); this.pendSize+=u8.length; this.offset+=u8.length; if(this.pendSize>=16*1024*1024) this._flush(); }
+  _flush(){ if(this.pend.length){ this.parts.push(new Blob(this.pend)); this.pend=[]; this.pendSize=0; } }   // large backups live in Blobs, not in JS memory
+  async add(name, produce){
+    if(this.cd.length>=65535) throw new Error('too-large');
+    const nameB=new TextEncoder().encode(name), off=this.offset;
+    const h=new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0808,true);   // flags: sizes in data descriptor, UTF-8 names
+    h.setUint16(10,this.time,true); h.setUint16(12,this.date,true); h.setUint16(26,nameB.length,true);
+    this._out(new Uint8Array(h.buffer)); this._out(nameB);
+    let crc=0, size=0;
+    await produce(u8=>{ crc=crc32(u8,crc); size+=u8.length; this._out(u8); });
+    if(this.offset > 0xFFFFFFF0) throw new Error('too-large');
+    const dd=new DataView(new ArrayBuffer(16)); dd.setUint32(0,0x08074b50,true); dd.setUint32(4,crc,true); dd.setUint32(8,size,true); dd.setUint32(12,size,true);
+    this._out(new Uint8Array(dd.buffer));
+    this.cd.push({nameB, crc, size, off});
+  }
+  finish(){
+    const start=this.offset;
+    for(const e of this.cd){
+      const h=new DataView(new ArrayBuffer(46));
+      h.setUint32(0,0x02014b50,true); h.setUint16(4,20,true); h.setUint16(6,20,true); h.setUint16(8,0x0808,true);
+      h.setUint16(12,this.time,true); h.setUint16(14,this.date,true); h.setUint32(16,e.crc,true); h.setUint32(20,e.size,true); h.setUint32(24,e.size,true);
+      h.setUint16(28,e.nameB.length,true); h.setUint32(42,e.off,true);
+      this._out(new Uint8Array(h.buffer)); this._out(e.nameB);
+    }
+    const size=this.offset-start; if(this.offset > 0xFFFFFFF0) throw new Error('too-large');
+    const end=new DataView(new ArrayBuffer(22)); end.setUint32(0,0x06054b50,true); end.setUint16(8,this.cd.length,true); end.setUint16(10,this.cd.length,true);
+    end.setUint32(12,size,true); end.setUint32(16,start,true);
+    this._out(new Uint8Array(end.buffer)); this._flush();
+    return new Blob(this.parts, {type:'application/zip'});
+  }
+}
+// reads stored ZIP entries straight from the file (no full load into memory)
+async function readZip(file){
+  const tailLen=Math.min(file.size, 22+65535), tail=new DataView(await file.slice(file.size-tailLen).arrayBuffer());
+  let p=-1; for(let i=tailLen-22;i>=0;i--){ if(tail.getUint32(i,true)===0x06054b50){ p=i; break; } }
+  if(p<0) throw new Error('not-zip');
+  const count=tail.getUint16(p+10,true), cdSize=tail.getUint32(p+12,true), cdOff=tail.getUint32(p+16,true);
+  if(cdOff+cdSize>file.size) throw new Error('bad-zip');
+  const cd=new DataView(await file.slice(cdOff, cdOff+cdSize).arrayBuffer()), dec=new TextDecoder(), entries=new Map();
+  let q=0;
+  for(let i=0;i<count;i++){
+    if(q+46>cd.byteLength || cd.getUint32(q,true)!==0x02014b50) throw new Error('bad-zip');
+    const method=cd.getUint16(q+10,true), csize=cd.getUint32(q+20,true), nl=cd.getUint16(q+28,true), el=cd.getUint16(q+30,true), cl=cd.getUint16(q+32,true), lo=cd.getUint32(q+42,true);
+    entries.set(dec.decode(new Uint8Array(cd.buffer, cd.byteOffset+q+46, nl)), {method, csize, lo}); q+=46+nl+el+cl;
+  }
+  const blobOf = async name => {
+    const e=entries.get(name); if(!e) return null; if(e.method!==0) throw new Error('compressed');
+    const lh=new DataView(await file.slice(e.lo, e.lo+30).arrayBuffer()); if(lh.getUint32(0,true)!==0x04034b50) throw new Error('bad-zip');
+    const start=e.lo+30+lh.getUint16(26,true)+lh.getUint16(28,true); if(start+e.csize>file.size) throw new Error('bad-zip');
+    return file.slice(start, start+e.csize);
+  };
+  return {entries, blobOf};
+}
+const aad = (name,i,last) => new TextEncoder().encode(`${name}|${i}|${last?1:0}`);
+async function encRecord(key, name, i, last, u8){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv, additionalData:aad(name,i,last)}, key, u8));
+  const r=new Uint8Array(16+ct.length); r.set(iv,0); new DataView(r.buffer).setUint32(12,ct.length,false); r.set(ct,16); return r;
+}
+async function decryptEntry(key, name, blob, type){
+  const out=[]; let off=0, i=0, last=false;
+  while(off<blob.size){
+    if(last) throw new Error('trailing');
+    const h=new DataView(await blob.slice(off,off+16).arrayBuffer()); if(h.byteLength<16) throw new Error('short');
+    const iv=new Uint8Array(h.buffer.slice(0,12)), len=h.getUint32(12,false);
+    if(off+16+len>blob.size) throw new Error('short');
+    last = off+16+len===blob.size;
+    out.push(new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM', iv, additionalData:aad(name,i,last)}, key, await blob.slice(off+16, off+16+len).arrayBuffer())));
+    off+=16+len; i++;
+  }
+  if(!last) throw new Error('short');
+  return new Blob(out, {type:type||''});
+}
+// pushes a Blob into a ZIP entry in ≤4 MiB pieces, encrypted if a key is given
+async function writeBlobEntry(zip, name, blob, key){
+  await zip.add(name, async write=>{
+    if(!blob.size){ if(key) write(await encRecord(key, name, 0, true, new Uint8Array(0))); return; }
+    for(let off=0, i=0; off<blob.size; off+=ENC_CHUNK, i++){
+      const part=new Uint8Array(await blob.slice(off, off+ENC_CHUNK).arrayBuffer()), last=off+ENC_CHUNK>=blob.size;
+      write(key ? await encRecord(key, name, i, last, part) : part);
+    }
+  });
+}
 async function makeBackup(pw){
   const data = {threads:S.threads, notes:S.notes, settings:Object.assign({},S.settings)};
-  const base = {app:'MemoChat', format:1, createdAt:new Date().toISOString()};
-  if(!pw) return JSON.stringify(Object.assign(base,{encrypted:false, data}));
-  const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12)), iter=250000;
-  const key=await deriveKey(pw, salt, iter);
-  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(JSON.stringify(data))));
-  return JSON.stringify(Object.assign(base,{encrypted:true, kdf:'PBKDF2-SHA256', iterations:iter, salt:b64(salt), iv:b64(iv), data:b64(ct)}));
+  const meta = {app:'MemoChat', format:2, createdAt:new Date().toISOString(), encrypted:!!pw};
+  let key=null;
+  if(pw){ const salt=crypto.getRandomValues(new Uint8Array(16)), iter=250000; key=await deriveKey(pw, salt, iter); Object.assign(meta, {kdf:'PBKDF2-SHA256', iterations:iter, salt:b64(salt), cipher:'AES-GCM'}); }
+  const zip=new ZipWriter(), enc=key?'.enc':'';
+  await zip.add('memochat.json', async w=>w(new TextEncoder().encode(JSON.stringify(meta, null, 1))));
+  await writeBlobEntry(zip, 'data.json'+enc, new Blob([JSON.stringify(data)]), key);
+  const ids=[...new Set(S.notes.flatMap(n=>(n.attachments||[]).map(a=>a.id)))];
+  for(const id of ids){ const b=await attBlob(id); if(b) await writeBlobEntry(zip, 'files/'+id+enc, b, key); }
+  return zip.finish();
 }
 async function saveFile(filename, content, onSaved){
   try{
     const type = filename.endsWith('.md') ? 'text/markdown;charset=utf-8' : 'application/json;charset=utf-8';
-    const url = URL.createObjectURL(new Blob([content], {type}));
+    const url = URL.createObjectURL(content instanceof Blob ? content : new Blob([content], {type}));
     const a = document.createElement('a'); a.href=url; a.download=filename; a.rel='noopener'; a.style.display='none';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url), 60000);
@@ -1390,31 +1630,71 @@ function backupDialog(){
     const p1=$('#bp1',ov).value, p2=$('#bp2',ov).value;
     if(p1!==p2){ $('#bpErr',ov).style.display='block'; return; }
     closeOverlay(ov);
-    const content = await makeBackup(p1);
+    snack(t('backupWorking'), null, null);
+    let content;
+    try{ content = await makeBackup(p1); }
+    catch(err){ console.warn('backup failed', err); snack(err && err.message==='too-large' ? t('backupTooLarge') : t('backupFailed')); return; }
     const d=new Date(); const stamp=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    await saveFile(`memochat-backup-${stamp}${p1?'-encrypted':''}.json`, content, ()=>{ S.settings.lastBackup=Date.now(); S.settings.nudgeSnooze=null; commit(); });
+    await saveFile(`memochat-backup-${stamp}${p1?'-encrypted':''}.zip`, content, ()=>{ S.settings.lastBackup=Date.now(); S.settings.nudgeSnooze=null; commit(); });
   });
+}
+// asks for the backup password until tryPw(pw) succeeds; resolves with its result, or null if cancelled
+function askPassword(tryPw){
+  return new Promise(res=>{
+    const ov=overlay(`<div class="dlg"><h3>${t('restoreFile')}</h3><p>${t('pwEnter')}</p><label class="field">${t('password')}<input id="ip" type="password"></label><p id="ipErr" style="color:var(--danger);display:none">${t('pwWrong')}</p><div class="btns"><button class="btn" data-x="no">${t('cancel')}</button><button class="btn primary" data-x="ok">${t('restore')}</button></div></div>`, true, ()=>res(null));
+    setTimeout(()=>$('#ip',ov).focus(),30);
+    let busy=false;
+    const go=async()=>{ if(busy) return; busy=true; try{ const r=await tryPw($('#ip',ov).value); closeOverlay(ov); res(r); }catch(err){ $('#ipErr',ov).style.display='block'; } busy=false; };
+    $('#ip',ov).addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
+    ov.addEventListener('click',e=>{ const x=e.target.closest('[data-x]'); if(!x) return; if(x.dataset.x==='ok') go(); else { closeOverlay(ov); res(null); } });
+  });
+}
+async function readBackupFile(f){
+  const head=new Uint8Array(await f.slice(0,4).arrayBuffer());
+  if(head[0]===0x50 && head[1]===0x4b && head[2]===3 && head[3]===4){
+    // format 2 (ZIP)
+    const zip=await readZip(f);
+    const metaB=await zip.blobOf('memochat.json'); if(!metaB) throw new Error('bad');
+    const meta=JSON.parse(await metaB.text()); if(!meta || meta.app!=='MemoChat' || meta.format!==2) throw new Error('bad');
+    let key=null, data;
+    if(meta.encrypted){
+      const db=await zip.blobOf('data.json.enc'); if(!db) throw new Error('bad');
+      const r=await askPassword(async pw=>{ const k=await deriveKey(pw, unb64(meta.salt), meta.iterations||250000); const d=JSON.parse(await (await decryptEntry(k, 'data.json.enc', db)).text()); return {k, d}; });
+      if(!r) return null; key=r.k; data=r.d;
+    } else { const db=await zip.blobOf('data.json'); if(!db) throw new Error('bad'); data=JSON.parse(await db.text()); }
+    const fileOf = async (id, type) => { const name='files/'+id+(key?'.enc':''); const b=await zip.blobOf(name); if(!b) return null; return key ? decryptEntry(key, name, b, type) : b; };
+    return {data, fileOf};
+  }
+  // format 1 (JSON, from the prototype or MemoChat 1.0–1.1)
+  const obj=JSON.parse(await f.text());
+  if(!obj || obj.app!=='MemoChat') throw new Error('bad');
+  let data=obj.data;
+  if(obj.encrypted){
+    data=await askPassword(async pw=>{ const key=await deriveKey(pw, unb64(obj.salt), obj.iterations||250000); const pt=await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(obj.iv)}, key, unb64(obj.data)); return JSON.parse(new TextDecoder().decode(pt)); });
+    if(!data) return null;
+  }
+  return {data, fileOf:async()=>null};
 }
 $('#importInput').addEventListener('change', async e=>{
   const f=e.target.files[0]; if(!f) return;
-  let obj; try{ obj=JSON.parse(await f.text()); }catch(err){ snack(t('badFile')); return; }
-  if(!obj || obj.app!=='MemoChat'){ snack(t('badFile')); return; }
-  let data = obj.data;
-  if(obj.encrypted){
-    data = await new Promise(res=>{
-      const ov=overlay(`<div class="dlg"><h3>${t('restoreFile')}</h3><p>${t('pwEnter')}</p><label class="field">${t('password')}<input id="ip" type="password"></label><p id="ipErr" style="color:var(--danger);display:none">${t('pwWrong')}</p><div class="btns"><button class="btn" data-x="no">${t('cancel')}</button><button class="btn primary" data-x="ok">${t('restore')}</button></div></div>`, true, ()=>res(null));
-      setTimeout(()=>$('#ip',ov).focus(),30);
-      const go=async()=>{ try{ const key=await deriveKey($('#ip',ov).value, unb64(obj.salt), obj.iterations||250000); const pt=await crypto.subtle.decrypt({name:'AES-GCM', iv:unb64(obj.iv)}, key, unb64(obj.data)); closeOverlay(ov); res(JSON.parse(new TextDecoder().decode(pt))); }catch(err){ $('#ipErr',ov).style.display='block'; } };
-      $('#ip',ov).addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
-      ov.addEventListener('click',e=>{ const x=e.target.closest('[data-x]'); if(!x) return; if(x.dataset.x==='ok') go(); else { closeOverlay(ov); res(null); } });
-    });
-    if(!data) return;
-  }
+  let b; try{ b=await readBackupFile(f); }catch(err){ console.warn(err); snack(t('badFile')); return; }
+  if(!b) return;
+  const data=b.data;
   if(!data || !Array.isArray(data.threads) || !Array.isArray(data.notes)){ snack(t('badFile')); return; }
-  if(!await confirmDlg(t('restoreFile'), t('confirmRestore', data.threads.filter(x=>!x.deletedAt).length, data.notes.filter(n=>!n.deletedAt).length), t('restore'), true)) return;
   const clean = sanitizeData(data);
+  if(!await confirmDlg(t('restoreFile'), t('confirmRestore', clean.threads.filter(x=>!x.deletedAt).length, clean.notes.filter(n=>!n.deletedAt).length), t('restore'), true)) return;
+  // files first; the notes are replaced only after all files are in place
+  const atts=[...new Map(clean.notes.flatMap(n=>(n.attachments||[]).map(a=>[a.id,a]))).values()];
+  for(let i=0;i<atts.length;i++){
+    if(i%5===0) snack(t('restoreWorking', i+1, atts.length), null, null);
+    let blob;
+    try{ blob=await b.fileOf(atts[i].id, atts[i].type); }catch(err){ console.warn('backup damaged', err); snack(t('backupDamaged')); return; }
+    try{ if(blob) await Store.putFile(atts[i].id, blob); }catch(err){ console.warn('restore file failed', err); snack(t('fileSaveFail')); return; }
+  }
   S = {threads:clean.threads, notes:clean.notes, settings:Object.assign({}, DEFAULT_SETTINGS, clean.settings, {lang:S.settings.lang, theme:S.settings.theme, welcome:false})};
+  resetComposer();
   ensureInbox(); ui.threadId=null; ui.showThread=false; ui.left='list'; shownThread=null; commit(); snack(t('restoredOk'));
+  gcFiles();
 });
 function exportMarkdown(){
   const pe=['🟢','🟡','🟠','🔴'];
@@ -1431,6 +1711,7 @@ function exportMarkdown(){
       const head = `- ${pe[n.priority]} ${fmtTime(n.createdAt)}${n.done?' ✓':''}${n.pinned?' 📌':''}${n.due?` 📅 ${n.due.date}${n.due.time?' '+n.due.time:''}`:''}`;
       if(n.type==='list'){ md += `${head} **${n.title||t('checklist')}**\n` + n.items.map(i=>`  - [${i.done?'x':' '}] ${i.text}`).join('\n') + '\n'; }
       else { md += `${head} ${(n.photo?'[📷] ':'')+(n.text||'').split('\n').join('\n  ')}\n`; }
+      (n.attachments||[]).forEach(a=>{ md += `  - 📎 ${a.name} (${fmtSize(a.size)})\n`; });
     });
     md+='\n';
   });
@@ -1480,6 +1761,7 @@ document.addEventListener('click', async e=>{
       case 'comp-plus': return sheet(t('addWhat'), [
           {icon:I.list,label:t('checklist'),check:ui.comp.mode==='list',fn:()=>{ ui.comp.mode = ui.comp.mode==='list'?'text':'list'; renderComposer(false); (ui.comp.mode==='list'?$('#cTitle'):$('#cInput')).focus(); }},
           {icon:I.image,label:t('photo'),fn:pickPhoto},
+          {icon:I.clip,label:t('file'),fn:pickFile},
           {icon:I.cal,label:t('addDate'),check:!!ui.comp.due,fn:()=>dueMenu('comp')}]);
       case 'comp-due': if(e.target.closest('[data-act="comp-due-x"]')) return; return dueMenu('comp');
       case 'comp-due-x': ui.comp.due=null; return renderComposer(false);
@@ -1492,6 +1774,7 @@ document.addEventListener('click', async e=>{
       case 'a-open': { const n=note(a.dataset.nid); if(n) openThread(n.threadId,{flash:[n.id]}); return; }
       case 'comp-text': ui.comp.mode='text'; renderComposer(false); return $('#cInput').focus();
       case 'comp-photo-x': ui.comp.photo=null; return renderComposer(false);
+      case 'comp-att-x': ui.comp.atts.splice(+a.dataset.ai,1); return renderComposer(false);
       case 'send': return sendNote();
       case 'cancel-edit': return cancelEdit();
       case 'sel-exit': return exitSelect();
@@ -1557,6 +1840,7 @@ R.addEventListener('click', e=>{
   if(e.target.closest('a')) return;
   const it=e.target.closest('.litem[data-item]'); if(it) return toggleItem(id, it.dataset.item);
   if(e.target.closest('[data-act="view-photo"]')) return viewPhoto(note(id).photo);
+  { const va=e.target.closest('[data-act="view-att"]'); if(va) return openAtt(id, va.dataset.aid); }
   if(e.target.closest('[data-act="history"]')) return showHistory(id);
   if(e.target.closest('[data-act="due"]') && !thread(note(id).threadId).archived) return dueMenu(id);
 }, true);
@@ -1585,7 +1869,7 @@ document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==
   applyTheme();
   await Store.init();
   const saved = await Store.load();
-  if(saved && Array.isArray(saved.threads)){ const c=sanitizeData(saved); S = {threads:c.threads, notes:c.notes, settings:Object.assign({}, DEFAULT_SETTINGS, c.settings)}; }
+  if(saved && Array.isArray(saved.threads)){ const c=sanitizeData(saved); S = {threads:c.threads, notes:c.notes, settings:Object.assign({}, DEFAULT_SETTINGS, c.settings)}; setTimeout(gcFiles, 8000); }
   else { S = seed(); persist(); }
   ensureInbox(); purgeTrash();
   setInterval(checkReminders, 30000); setTimeout(checkReminders, 1500);
@@ -1617,24 +1901,23 @@ async function receiveShare(){
   if(text) parts.push(text);
   if(url && !text.includes(url)) parts.push(url);
   const body = parts.join('\n');
-  let photo = null; const f = Array.isArray(sh.files) ? sh.files[0] : null;
-  if(f instanceof Blob){ try{ photo = await downscale(f, 1280, .78); }catch(e){ console.warn('shared image failed', e); } }
-  const extra = num(sh.extraFiles, 0);
-  if(!body && !photo){ snack(t('shareEmpty')); return; }
+  const files = (Array.isArray(sh.files) ? sh.files : []).filter(f=>f instanceof Blob);
+  if(!body && !files.length){ snack(t('shareEmpty')); return; }
   // the shared content goes into the composer of the chosen thread, so a comment, priority or date can be added before sending
-  const deliver = id => {
+  const deliver = async id => {
     if(!thread(id)) return;
     S.settings.recent = [id, ...(S.settings.recent||[]).filter(x=>x!==id)].slice(0,5); persist();
     ui.left='list'; openThread(id);
-    ui.comp.mode='text'; if(photo) ui.comp.photo=photo; ui.comp.editing=null; renderComposer(false);
+    ui.comp.mode='text'; ui.comp.editing=null; renderComposer(false);
+    if(files.length) await addFilesToComposer(files);
     const inp=$('#cInput');
     if(inp){ inp.value = inp.value.trim() ? inp.value.replace(/\s+$/,'')+'\n'+body : body; autoGrow(inp); updateSend(); inp.focus(); try{ inp.setSelectionRange(inp.value.length, inp.value.length); }catch(e){} }
-    if(extra) snack(t('sharedExtra', extra));
   };
   const choose = () => {
     const items = [{icon:I.newThread, label:t('newThread'), fn:async()=>{ const th=await newThread(); if(th) deliver(th.id); else choose(); }}]
       .concat(orderedTargets(null).map(th=>({icon:avatar(th,'xs'), label:th.name, fn:()=>deliver(th.id)})));
-    const prev = (photo?'📷 ':'') + (body.split('\n')[0] || t('photoMsg'));
+    const fprev = files.length ? (/^image\//.test(files[0].type)?'📷 ':'📎 ') + (cleanName(files[0].name)||'') + (files.length>1?` +${files.length-1}`:'') : '';
+    const prev = [fprev, body.split('\n')[0]].filter(Boolean).join(' · ');
     sheet(t('saveTo'), items, prev.length>90 ? prev.slice(0,90)+'…' : prev, ()=>snack(t('shareCancelled'), t('chooseAgain'), choose, 10000));
   };
   choose();

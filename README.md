@@ -5,7 +5,8 @@ Notes as a chat with yourself. An installable, offline-first web app (PWA) for A
 **App:** https://tvspk.github.io/memochat/
 
 - Your notes are stored only on your device (IndexedDB in the browser). Nothing is uploaded anywhere.
-- Back up regularly: ⋮ → Backup & settings → Back up to file. Backups from the prototype can be restored here.
+- Attachments (photos and any files) are kept in their original quality, stored on the device next to the notes.
+- Back up regularly: ⋮ → Backup & settings → Back up to file. The backup is one ZIP file with notes and attachments, optionally encrypted with a password. Older JSON backups (also from the prototype) can still be restored.
 - Share to MemoChat from other apps (text, links, one photo): Share → MemoChat → choose a thread.
 - Long-press the app icon for shortcuts: Inbox, Work, Search.
 

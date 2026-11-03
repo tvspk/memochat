@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#2B4C7E">
 <meta name="color-scheme" content="light dark">
@@ -22,8 +22,9 @@
   <section id="left" class="pane"></section>
   <section id="right" class="pane"></section>
 </div>
-<input type="file" id="photoInput" accept="image/*" class="hidden">
-<input type="file" id="importInput" accept=".json,application/json" class="hidden">
+<input type="file" id="photoInput" accept="image/*" multiple class="hidden">
+<input type="file" id="fileInput" multiple class="hidden">
+<input type="file" id="importInput" accept=".zip,.json,application/zip,application/json" class="hidden">
 <noscript>MemoChat needs JavaScript.</noscript>
 <script src="js/app.js"></script>
 </body>

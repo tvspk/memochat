@@ -31,8 +31,10 @@ self.addEventListener('message', event => {
 const SHARE_PATH = new URL('./share-target', self.registration.scope).pathname;
 function idbPut(key, value) {
   return new Promise((resolve, reject) => {
-    const r = indexedDB.open('memochat', 1);
-    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    const r = indexedDB.open('memochat', 2);   // same version and stores as the app (js/app.js, Store.init)
+    r.onupgradeneeded = () => { const db = r.result;
+      if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+      if (!db.objectStoreNames.contains('files')) db.createObjectStore('files'); };
     r.onerror = () => reject(r.error);
     r.onsuccess = () => {
       const db = r.result, tx = db.transaction('kv', 'readwrite');
@@ -46,9 +48,9 @@ async function handleShare(req) {
   try {
     const fd = await req.formData();
     const s = v => (typeof v === 'string' ? v.slice(0, 100000) : '');
-    const files = fd.getAll('files').filter(f => f && typeof f === 'object' && f.size > 0 && /^image\//.test(f.type));
-    await idbPut('share', {title: s(fd.get('title')), text: s(fd.get('text')), url: s(fd.get('url')),
-                           files: files.slice(0, 1), extraFiles: Math.max(0, files.length - 1), at: Date.now()});
+    // any kind of file, original bytes; the app turns them into attachments
+    const files = fd.getAll('files').filter(f => f && typeof f === 'object' && typeof f.size === 'number');
+    await idbPut('share', {title: s(fd.get('title')), text: s(fd.get('text')), url: s(fd.get('url')), files, at: Date.now()});
   } catch (e) { /* open the app anyway */ }
   return Response.redirect(new URL('./?share=1', self.registration.scope).href, 303);
 }

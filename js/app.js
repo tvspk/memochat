@@ -87,6 +87,7 @@ const I = {
   film: sv('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4.5-2.5z"/>'),
   music: sv('<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>'),
   share: sv('<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/>'),
+  sync: sv('<path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 21v-5h-5"/>'),
   dia: ''
 };
 function knot(){ return `<svg class="knot" height="18" aria-hidden="true"><rect width="100%" height="18" fill="url(#knotP)"/></svg>`; }
@@ -244,6 +245,48 @@ Object.assign(T.cs,{
   writing:'Ukládám…',
   backupFailed:'Zálohu se nepodařilo vytvořit.', backupDamaged:'Soubor zálohy je poškozený. Nic se nezměnilo.', backupSub:'Poznámky i přílohy (ZIP), volitelně s heslem', attachments:'Přílohy'
 });
+Object.assign(T.en,{
+  syncSection:'Sync', syncSetup:'Set up sync', syncSetupSub:'Phone and computer exchange changes once a day, encrypted, through your private GitHub repository.',
+  syncBroken:'The sync key can’t be read on this device. Set up sync again (your notes stay).',
+  syncNow:'Sync now', syncLast:d=>`Last sync: ${d}`, syncNever:'Not synced yet', syncing:'Syncing…',
+  syncFiles:(i,n)=>`Downloading files ${i} / ${n}…`, syncUp:(i,n)=>`Uploading files ${i} / ${n}…`, syncDone:'Synced',
+  syncCode:'Pairing code', syncCodeSub:'To connect another device', syncCodeShow:'Enter these 8 words on the device you want to connect. Keep them private.',
+  syncOff:'Disconnect this device', syncOffSub:r=>`Stops syncing with ${r}. Notes stay here.`, syncOffBtn:'Disconnect',
+  syncOffConfirm:'Disconnect this device from sync? Notes stay on this device; the other devices keep theirs.', syncOffDone:'Sync is off on this device',
+  syncT:'Set up sync', syncIntro:'Paste the token for your private repository (it starts with github_pat_). It stays on this device and is used only for the repository below.',
+  syncToken:'Token', syncRepo:'Repository', syncConnect:'Connect', syncChecking:'Checking…',
+  syncCodeT:'Your pairing code', syncCodeNew:'Save these 8 words in your password manager now. You’ll type them on your other device, and without them no other device can read your synced notes.',
+  syncCodeSaved:'I’ve saved it', copyCode:'Copy',
+  syncEnterT:'Pairing code', syncEnter:'This repository is already used by your other device. Enter its 8-word pairing code (on the other device: ⋮ → Backup & settings → Pairing code).',
+  syncCodeBad:'Enter the 8 words of the code.', syncCodeWrong:'This code doesn’t match. Check the words.',
+  syncNewToken:'Enter a new token', syncNewTokenSub:r=>`Create a new token for ${r} on GitHub (Contents: Read and write) and paste it here.`,
+  syncTokenOld:'The token is almost a year old and may expire soon.', syncErrOtherBox:'This token opens a different sync repository.',
+  syncErrOffline:'No internet connection. Sync will try again later.', syncErrToken:'The token is invalid or has expired. Create a new one and enter it here.',
+  syncErrRepo:'Repository not found, or the token has no access to it.', syncErrPublic:'The repository must be private.',
+  syncErrDamaged:'Some synced data couldn’t be read. The rest was synced.', syncErrHttp:s=>`GitHub refused the request (${s}). Try again later.`, syncErrOther:'Sync failed. Try again later.',
+  fileNotYet:'This file hasn’t been downloaded yet. Sync again later.', aboutSync:'Sync is on: changes are stored encrypted in your private GitHub repository.'
+});
+Object.assign(T.cs,{
+  syncSection:'Synchronizace', syncSetup:'Nastavit synchronizaci', syncSetupSub:'Telefon a počítač si jednou denně šifrovaně vymění změny přes tvůj soukromý repozitář na GitHubu.',
+  syncBroken:'Klíč synchronizace nejde v tomto zařízení přečíst. Nastav synchronizaci znovu (poznámky zůstanou).',
+  syncNow:'Synchronizovat teď', syncLast:d=>`Naposledy: ${d}`, syncNever:'Zatím nesynchronizováno', syncing:'Synchronizuji…',
+  syncFiles:(i,n)=>`Stahuji soubory ${i} / ${n}…`, syncUp:(i,n)=>`Nahrávám soubory ${i} / ${n}…`, syncDone:'Synchronizováno',
+  syncCode:'Párovací kód', syncCodeSub:'Pro připojení dalšího zařízení', syncCodeShow:'Tato slova zadej v zařízení, které chceš připojit. Nikomu je neukazuj.',
+  syncOff:'Odpojit toto zařízení', syncOffSub:r=>`Ukončí synchronizaci s ${r}. Poznámky tu zůstanou.`, syncOffBtn:'Odpojit',
+  syncOffConfirm:'Odpojit toto zařízení od synchronizace? Poznámky v něm zůstanou, ostatní zařízení si nechají svoje.', syncOffDone:'Synchronizace je v tomto zařízení vypnutá',
+  syncT:'Nastavit synchronizaci', syncIntro:'Vlož token ke svému soukromému repozitáři (začíná github_pat_). Zůstane jen v tomto zařízení a použije se jen pro repozitář níže.',
+  syncToken:'Token', syncRepo:'Repozitář', syncConnect:'Připojit', syncChecking:'Ověřuji…',
+  syncCodeT:'Tvůj párovací kód', syncCodeNew:'Hned si těchto 8 slov ulož do správce hesel. Zadáš je v druhém zařízení a bez nich žádné jiné zařízení synchronizované poznámky nepřečte.',
+  syncCodeSaved:'Mám uloženo', copyCode:'Kopírovat',
+  syncEnterT:'Párovací kód', syncEnter:'Tento repozitář už používá tvoje druhé zařízení. Zadej jeho párovací kód (8 slov; v druhém zařízení: ⋮ → Záloha a nastavení → Párovací kód).',
+  syncCodeBad:'Zadej 8 slov kódu.', syncCodeWrong:'Kód nesedí. Zkontroluj slova.',
+  syncNewToken:'Vložit nový token', syncNewTokenSub:r=>`Na GitHubu vytvoř nový token pro ${r} (Contents: Read and write) a vlož ho sem.`,
+  syncTokenOld:'Token je skoro rok starý, brzy může vypršet.', syncErrOtherBox:'Tento token otevírá jiný repozitář synchronizace.',
+  syncErrOffline:'Není připojení k internetu. Synchronizace to zkusí později.', syncErrToken:'Token je neplatný nebo vypršel. Vytvoř nový a vlož ho sem.',
+  syncErrRepo:'Repozitář nebyl nalezen nebo k němu token nemá přístup.', syncErrPublic:'Repozitář musí být soukromý (Private).',
+  syncErrDamaged:'Část synchronizovaných dat nešla přečíst. Zbytek se synchronizoval.', syncErrHttp:s=>`GitHub požadavek odmítl (${s}). Zkus to později.`, syncErrOther:'Synchronizace se nepovedla. Zkus to později.',
+  fileNotYet:'Tento soubor se ještě nestáhl. Synchronizuj znovu později.', aboutSync:'Synchronizace je zapnutá: změny se šifrovaně ukládají do tvého soukromého repozitáře na GitHubu.'
+});
 function t(k,...a){ const L=T[S.settings.lang]||T.en; const v=L[k]!==undefined?L[k]:T.en[k]; return typeof v==='function'?v(...a):v; }
 function loc(){ return S.settings.lang==='cs'?'cs-CZ':'en-GB'; }
 
@@ -266,7 +309,7 @@ const DEF_DARK = '<svg width="52%" height="58%" viewBox="0 0 22 24" fill="none" 
 const DAY = 86400000;
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-'+Date.now().toString(36)+Math.random().toString(36).slice(2));
 
-let S = {threads:[],notes:[],settings:{}};
+let S = {threads:[],notes:[],tombs:{},settings:{}};
 
 /* ---------- Android app (APK): bridge to the native side ----------
    In the APK, window.MemoChatNative is provided by MainActivity.java. In a browser it is absent
@@ -291,7 +334,7 @@ function nativeInfo(){ try{ return JSON.parse(NATIVE.info()); }catch(e){ return 
 function b64(u8){ let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(s); }
 const DEFAULT_SETTINGS = {theme:null, lang:'en', lastBackup:null, nudgeSnooze:null, recent:[], welcome:false};
 
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.4.0';
 const DEFAULT_THREADS = [
   ['Inbox','📥','gray',{system:'inbox',pinned:true}],['Work','💼','blue'],['Home','🏠','purple'],['Shopping','🛒','pink'],['Ideas','💡','indigo'],
   ['Korean','🇰🇷','teal'],['Welsh','🏴󠁧󠁢󠁷󠁬󠁳󠁿','teal'],['Claude','✳️','slate'],['Copilot','🧭','slate'],['AI general','🤖','slate'],
@@ -302,7 +345,7 @@ function seed(){
   const now = Date.now();
   const threads = DEFAULT_THREADS.map(([name,emoji,color,extra],i)=>Object.assign({id:uid(),name,emoji,color,pinned:false,pinnedAt:null,archived:false,hideDone:false,createdAt:now,lastActivity:now-i},extra||{}));
   threads[0].pinnedAt = now;
-  return {threads, notes:[], settings:Object.assign({}, DEFAULT_SETTINGS, {lang:S.settings.lang||'en', theme:S.settings.theme||null, welcome:true})};
+  return {threads, notes:[], tombs:{}, settings:Object.assign({}, DEFAULT_SETTINGS, {lang:S.settings.lang||'en', theme:S.settings.theme||null, welcome:true})};
 }
 
 /* ---------- data sanitizing (backups and stored data are untrusted input) ---------- */
@@ -360,7 +403,15 @@ function sanitizeData(data){
     recent:(Array.isArray(s.recent)?s.recent:[]).filter(x=>tids.has(x)).slice(0,5), kbOffset:num(s.kbOffset), kbHint:!!s.kbHint, welcome:!!s.welcome,
     backupEncrypt:!!s.backupEncrypt, backupSnooze:num(s.backupSnooze), notifAsked:!!s.notifAsked, updCheck:num(s.updCheck)
   };
-  return {threads, notes, settings};
+  return {threads, notes, settings, tombs:cleanTombs(data.tombs)};
+}
+/* tombstones: ids of threads and notes deleted forever → time of deletion; they stop other devices
+   from bringing those items back through sync. Kept for TOMB_DAYS. */
+const TOMB_DAYS = 400;
+function cleanTombs(v){
+  const out={}, lim=Date.now()-TOMB_DAYS*DAY;
+  if(v && typeof v==='object' && !Array.isArray(v)) for(const k of Object.keys(v).slice(0,200000)){ const at=num(v[k]); if(RE_ID.test(k) && at!==null && at>lim) out[k]=at; }
+  return out;
 }
 
 /* ---------- storage (IndexedDB → localStorage → memory) ---------- */
@@ -399,6 +450,12 @@ const Store = {
   getFile(id){ return this._files('readonly', st=>st.get(id)); },
   fileKeys(){ return this._files('readonly', st=>st.getAllKeys()); },
   deleteFiles(ids){ return this._files('readwrite', st=>{ ids.forEach(id=>st.delete(id)); }); },
+  // other values in 'kv' (sync settings); rejects on failure
+  _kv(mode, fn){ return new Promise((res,rej)=>{ if(this.mode!=='idb') return rej(new Error('no-idb')); const tx=this.db.transaction('kv',mode); let out;
+    const r=fn(tx.objectStore('kv')); if(r) r.onsuccess=()=>{ out=r.result; }; tx.oncomplete=()=>res(out); tx.onerror=()=>rej(tx.error); tx.onabort=()=>rej(tx.error||new Error('abort')); }); },
+  kvGet(k){ return this._kv('readonly', st=>st.get(k)); },
+  kvPut(k, v){ return this._kv('readwrite', st=>st.put(v, k)); },
+  kvDel(k){ return this._kv('readwrite', st=>st.delete(k)); },
   async save(obj){
     try{
       if(this.mode==='idb') return await new Promise((res,rej)=>{ const tx=this.db.transaction('kv','readwrite'); tx.objectStore('kv').put(obj,'state'); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); });
@@ -413,13 +470,22 @@ function persist(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>{ stampCha
 const lastSig = new Map(); let sigReady=false;
 const sigOf = x => JSON.stringify(x, (k,v)=> (k==='updatedAt'||k==='history'||k==='thumb'||k==='photo'||k==='remindFired') ? undefined : v);
 function stampChanges(){
-  const now=Date.now();
+  const now=Date.now(), seen=new Set();
   for(const x of S.threads.concat(S.notes)){
     const sig=sigOf(x), prev=lastSig.get(x.id);
     if(sigReady && prev!==sig) x.updatedAt=now;
     else if(!x.updatedAt) x.updatedAt = x.editedAt || x.createdAt || now;
-    lastSig.set(x.id, sig);
+    lastSig.set(x.id, sig); seen.add(x.id);
   }
+  // items that disappeared were deleted forever (trash emptied, purged after 30 days, undo of a copy…)
+  if(!S.tombs) S.tombs={};
+  for(const id of [...lastSig.keys()]) if(!seen.has(id)){ lastSig.delete(id); if(sigReady) S.tombs[id]=now; }
+  sigReady=true;
+}
+// after the data was replaced as a whole (restore, sync): remember the new state without stamping it as changed
+function resetSigs(){
+  lastSig.clear();
+  for(const x of S.threads.concat(S.notes)){ if(!x.updatedAt) x.updatedAt = x.editedAt || x.createdAt || Date.now(); lastSig.set(x.id, sigOf(x)); }
   sigReady=true;
 }
 function commit(){ persist(); render(); }
@@ -709,10 +775,11 @@ function renderSettings(){
       <button class="it" data-act="import"><span class="ic">${I.upload}</span><div class="grow">${t('restoreFile')}<div class="small">${t('restoreSub')}</div></div></button>
       <button class="it" data-act="export-md"><span class="ic">${I.doc}</span><div class="grow">${t('exportMd')}<div class="small">${t('exportMdSub')}</div></div></button>
     </div>
+    ${syncSettingsHTML()}
     ${NATIVE ? nativeSettingsHTML() : ''}
     <div class="grp"><div class="it"><div class="grow small" style="margin:0" id="stUse">&nbsp;</div></div></div>
     <div class="section-h">${t('about')}</div>
-    <div class="grp"><div class="it"><div class="grow small" style="margin:0">${NATIVE?t('aboutApk'):t('aboutText')}<br>${t('version', NATIVE ? (nativeInfo().versionName||APP_VERSION) : APP_VERSION)}</div></div></div>
+    <div class="grp"><div class="it"><div class="grow small" style="margin:0">${NATIVE?t('aboutApk'):t('aboutText')}${syncOn()?'<br>'+t('aboutSync'):''}<br>${t('version', NATIVE ? (nativeInfo().versionName||APP_VERSION) : APP_VERSION)}</div></div></div>
   </div>`;
   try{ navigator.storage.estimate().then(e=>{ const el=$('#stUse'); if(el) el.textContent=t('storageUsed', fmtSize(e.usage||0)); }).catch(()=>{}); }catch(e){}
 }
@@ -1250,6 +1317,7 @@ function mainMenu(){
     {icon:I.archive,label:t('archived'),right:nArch?`<span style="color:var(--muted);font-size:14px">${nArch}</span>`:'',fn:()=>goLeft('archive')},
     {icon:I.trash,label:t('trash'),right:nTrash?`<span style="color:var(--muted);font-size:14px">${nTrash}</span>`:'',fn:()=>goLeft('trash')},
     {icon:I.settings,label:t('settings'),fn:()=>goLeft('settings')},
+    ...(syncOn() ? [{icon:I.sync,label:t('syncNow'),fn:()=>syncNow(true)}] : []),
     {icon:I.globe,label:S.settings.lang==='en'?'Čeština':'English',fn:()=>{ S.settings.lang = S.settings.lang==='en'?'cs':'en'; shownThread=null; commit(); }},
   ]);
 }
@@ -1503,7 +1571,7 @@ async function attBlob(aid){ try{ return await Store.getFile(aid); }catch(e){ re
 function findAtt(nid, aid){ const n=note(nid); return n && (n.attachments||[]).find(a=>a.id===aid); }
 async function openAtt(nid, aid){
   const a=findAtt(nid, aid); if(!a) return;
-  const blob=await attBlob(aid); if(!blob){ snack(t('fileMissing')); return; }
+  const blob=await attBlob(aid); if(!blob){ snack(syncOn() ? t('fileNotYet') : t('fileMissing')); return; }
   const typed = blob.type===a.type ? blob : new Blob([blob], {type:a.type});
   if(IMG_TYPES.test(a.type) || /^(video|audio)\//.test(a.type)) return mediaViewer(typed, a);
   fileMenu(typed, a);
@@ -1772,9 +1840,11 @@ $('#importInput').addEventListener('change', async e=>{
     try{ blob=await b.fileOf(atts[i].id, atts[i].type); }catch(err){ console.warn('backup damaged', err); snack(t('backupDamaged')); return; }
     try{ if(blob) await Store.putFile(atts[i].id, blob); }catch(err){ console.warn('restore file failed', err); snack(t('fileSaveFail')); return; }
   }
-  S = {threads:clean.threads, notes:clean.notes, settings:Object.assign({}, DEFAULT_SETTINGS, clean.settings, {lang:S.settings.lang, theme:S.settings.theme, welcome:false})};
+  // tombstones stay (they belong to this device's sync history, backups don't carry them)
+  S = {threads:clean.threads, notes:clean.notes, tombs:S.tombs||{}, settings:Object.assign({}, DEFAULT_SETTINGS, clean.settings, {lang:S.settings.lang, theme:S.settings.theme, welcome:false})};
+  clean.threads.concat(clean.notes).forEach(x=>{ delete S.tombs[x.id]; });
   resetComposer();
-  ensureInbox(); ui.threadId=null; ui.showThread=false; ui.left='list'; shownThread=null; commit(); snack(t('restoredOk'));
+  ensureInbox(); resetSigs(); ui.threadId=null; ui.showThread=false; ui.left='list'; shownThread=null; commit(); snack(t('restoredOk'));
   gcFiles();
 });
 function exportMarkdown(){
@@ -1943,6 +2013,491 @@ window.addEventListener('resize',()=>{ const w=isWide(); if(w!==wasWide){ wasWid
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'){ clearTimeout(saveTimer); Store.save(S); } });
 
 /* =========================================================
+   Sync: phone ↔ computer through the user's private GitHub repository ("mailbox")
+   ---------------------------------------------------------
+   - Each device keeps its whole state (threads, notes, tombstones) as ONE encrypted file "state"
+     on its own branch mc-<device id>. Every upload replaces the branch with a fresh commit without
+     parents, so the repository does not grow with history.
+   - Attachments are stored next to it as encrypted pieces "a-<attachment id>-<n>" (≤ 8 MiB each).
+     A device's tree also lists pieces uploaded by other devices, so they stay as long as any device needs them.
+   - Merging: per item, the newer updatedAt wins; when both sides changed a note since the last sync,
+     the losing text goes to the note's history. Tombstones carry "deleted forever".
+   - Encryption: AES-256-GCM with a key derived (HKDF-SHA-256) from the 8-word pairing code. The code and
+     the token stay on the device (Android Keystore in the APK, a non-extractable key in IndexedDB on the web).
+     GitHub only ever sees encrypted data; the token can reach only the mailbox repository.
+   ========================================================= */
+const SYNC_WORDS = 'abandon ability able about above absent absorb abstract absurd abuse access accident account accuse achieve acid acoustic acquire across act action actor actress actual adapt add addict address adjust admit adult advance advice aerobic affair afford afraid again age agent agree ahead aim air airport aisle alarm album alcohol alert alien all alley allow almost alone alpha already also alter always amateur amazing among amount amused analyst anchor ancient anger angle angry animal ankle announce annual another answer antenna antique anxiety any apart apology appear apple approve april arch arctic area arena argue arm armed armor army around arrange arrest arrive arrow art artefact artist artwork ask aspect assault asset assist assume asthma athlete atom attack attend attitude attract auction audit august aunt author auto autumn average avocado avoid awake aware away awesome awful awkward axis baby bachelor bacon badge bag balance balcony ball bamboo banana banner bar barely bargain barrel base basic basket battle beach bean beauty because become beef before begin behave behind believe below belt bench benefit best betray better between beyond bicycle bid bike bind biology bird birth bitter black blade blame blanket blast bleak bless blind blood blossom blouse blue blur blush board boat body boil bomb bone bonus book boost border boring borrow boss bottom bounce box boy bracket brain brand brass brave bread breeze brick bridge brief bright bring brisk broccoli broken bronze broom brother brown brush bubble buddy budget buffalo build bulb bulk bullet bundle bunker burden burger burst bus business busy butter buyer buzz cabbage cabin cable cactus cage cake call calm camera camp can canal cancel candy cannon canoe canvas canyon capable capital captain car carbon card cargo carpet carry cart case cash casino castle casual cat catalog catch category cattle caught cause caution cave ceiling celery cement census century cereal certain chair chalk champion change chaos chapter charge chase chat cheap check cheese chef cherry chest chicken chief child chimney choice choose chronic chuckle chunk churn cigar cinnamon circle citizen city civil claim clap clarify claw clay clean clerk clever click client cliff climb clinic clip clock clog close cloth cloud clown club clump cluster clutch coach coast coconut code coffee coil coin collect color column combine come comfort comic common company concert conduct confirm congress connect consider control convince cook cool copper copy coral core corn correct cost cotton couch country couple course cousin cover coyote crack cradle craft cram crane crash crater crawl crazy cream credit creek crew cricket crime crisp critic crop cross crouch crowd crucial cruel cruise crumble crunch crush cry crystal cube culture cup cupboard curious current curtain curve cushion custom cute cycle dad damage damp dance danger daring dash daughter dawn day deal debate debris decade december decide decline decorate decrease deer defense define defy degree delay deliver demand demise denial dentist deny depart depend deposit depth deputy derive describe desert design desk despair destroy detail detect develop device devote diagram dial diamond diary dice diesel diet differ digital dignity dilemma dinner dinosaur direct dirt disagree discover disease dish dismiss disorder display distance divert divide divorce dizzy doctor document dog doll dolphin domain donate donkey donor door dose double dove draft dragon drama drastic draw dream dress drift drill drink drip drive drop drum dry duck dumb dune during dust dutch duty dwarf dynamic eager eagle early earn earth easily east easy echo ecology economy edge edit educate effort egg eight either elbow elder electric elegant element elephant elevator elite else embark embody embrace emerge emotion employ empower empty enable enact end endless endorse enemy energy enforce engage engine enhance enjoy enlist enough enrich enroll ensure enter entire entry envelope episode equal equip era erase erode erosion error erupt escape essay essence estate eternal ethics evidence evil evoke evolve exact example excess exchange excite exclude excuse execute exercise exhaust exhibit exile exist exit exotic expand expect expire explain expose express extend extra eye eyebrow fabric face faculty fade faint faith fall false fame family famous fan fancy fantasy farm fashion fat fatal father fatigue fault favorite feature february federal fee feed feel female fence festival fetch fever few fiber fiction field figure file film filter final find fine finger finish fire firm first fiscal fish fit fitness fix flag flame flash flat flavor flee flight flip float flock floor flower fluid flush fly foam focus fog foil fold follow food foot force forest forget fork fortune forum forward fossil foster found fox fragile frame frequent fresh friend fringe frog front frost frown frozen fruit fuel fun funny furnace fury future gadget gain galaxy gallery game gap garage garbage garden garlic garment gas gasp gate gather gauge gaze general genius genre gentle genuine gesture ghost giant gift giggle ginger giraffe girl give glad glance glare glass glide glimpse globe gloom glory glove glow glue goat goddess gold good goose gorilla gospel gossip govern gown grab grace grain grant grape grass gravity great green grid grief grit grocery group grow grunt guard guess guide guilt guitar gun gym habit hair half hammer hamster hand happy harbor hard harsh harvest hat have hawk hazard head health heart heavy hedgehog height hello helmet help hen hero hidden high hill hint hip hire history hobby hockey hold hole holiday hollow home honey hood hope horn horror horse hospital host hotel hour hover hub huge human humble humor hundred hungry hunt hurdle hurry hurt husband hybrid ice icon idea identify idle ignore ill illegal illness image imitate immense immune impact impose improve impulse inch include income increase index indicate indoor industry infant inflict inform inhale inherit initial inject injury inmate inner innocent input inquiry insane insect inside inspire install intact interest into invest invite involve iron island isolate issue item ivory jacket jaguar jar jazz jealous jeans jelly jewel job join joke journey joy judge juice jump jungle junior junk just kangaroo keen keep ketchup key kick kid kidney kind kingdom kiss kit kitchen kite kitten kiwi knee knife knock know lab label labor ladder lady lake lamp language laptop large later latin laugh laundry lava law lawn lawsuit layer lazy leader leaf learn leave lecture left leg legal legend leisure lemon lend length lens leopard lesson letter level liar liberty library license life lift light like limb limit link lion liquid list little live lizard load loan lobster local lock logic lonely long loop lottery loud lounge love loyal lucky luggage lumber lunar lunch luxury lyrics machine mad magic magnet maid mail main major make mammal man manage mandate mango mansion manual maple marble march margin marine market marriage mask mass master match material math matrix matter maximum maze meadow mean measure meat mechanic medal media melody melt member memory mention menu mercy merge merit merry mesh message metal method middle midnight milk million mimic mind minimum minor minute miracle mirror misery miss mistake mix mixed mixture mobile model modify mom moment monitor monkey monster month moon moral more morning mosquito mother motion motor mountain mouse move movie much muffin mule multiply muscle museum mushroom music must mutual myself mystery myth naive name napkin narrow nasty nation nature near neck need negative neglect neither nephew nerve nest net network neutral never news next nice night noble noise nominee noodle normal north nose notable note nothing notice novel now nuclear number nurse nut oak obey object oblige obscure observe obtain obvious occur ocean october odor off offer office often oil okay old olive olympic omit once one onion online only open opera opinion oppose option orange orbit orchard order ordinary organ orient original orphan ostrich other outdoor outer output outside oval oven over own owner oxygen oyster ozone pact paddle page pair palace palm panda panel panic panther paper parade parent park parrot party pass patch path patient patrol pattern pause pave payment peace peanut pear peasant pelican pen penalty pencil people pepper perfect permit person pet phone photo phrase physical piano picnic picture piece pig pigeon pill pilot pink pioneer pipe pistol pitch pizza place planet plastic plate play please pledge pluck plug plunge poem poet point polar pole police pond pony pool popular portion position possible post potato pottery poverty powder power practice praise predict prefer prepare present pretty prevent price pride primary print priority prison private prize problem process produce profit program project promote proof property prosper protect proud provide public pudding pull pulp pulse pumpkin punch pupil puppy purchase purity purpose purse push put puzzle pyramid quality quantum quarter question quick quit quiz quote rabbit raccoon race rack radar radio rail rain raise rally ramp ranch random range rapid rare rate rather raven raw razor ready real reason rebel rebuild recall receive recipe record recycle reduce reflect reform refuse region regret regular reject relax release relief rely remain remember remind remove render renew rent reopen repair repeat replace report require rescue resemble resist resource response result retire retreat return reunion reveal review reward rhythm rib ribbon rice rich ride ridge rifle right rigid ring riot ripple risk ritual rival river road roast robot robust rocket romance roof rookie room rose rotate rough round route royal rubber rude rug rule run runway rural sad saddle sadness safe sail salad salmon salon salt salute same sample sand satisfy satoshi sauce sausage save say scale scan scare scatter scene scheme school science scissors scorpion scout scrap screen script scrub sea search season seat second secret section security seed seek segment select sell seminar senior sense sentence series service session settle setup seven shadow shaft shallow share shed shell sheriff shield shift shine ship shiver shock shoe shoot shop short shoulder shove shrimp shrug shuffle shy sibling sick side siege sight sign silent silk silly silver similar simple since sing siren sister situate six size skate sketch ski skill skin skirt skull slab slam sleep slender slice slide slight slim slogan slot slow slush small smart smile smoke smooth snack snake snap sniff snow soap soccer social sock soda soft solar soldier solid solution solve someone song soon sorry sort soul sound soup source south space spare spatial spawn speak special speed spell spend sphere spice spider spike spin spirit split spoil sponsor spoon sport spot spray spread spring spy square squeeze squirrel stable stadium staff stage stairs stamp stand start state stay steak steel stem step stereo stick still sting stock stomach stone stool story stove strategy street strike strong struggle student stuff stumble style subject submit subway success such sudden suffer sugar suggest suit summer sun sunny sunset super supply supreme sure surface surge surprise surround survey suspect sustain swallow swamp swap swarm swear sweet swift swim swing switch sword symbol symptom syrup system table tackle tag tail talent talk tank tape target task taste tattoo taxi teach team tell ten tenant tennis tent term test text thank that theme then theory there they thing this thought three thrive throw thumb thunder ticket tide tiger tilt timber time tiny tip tired tissue title toast tobacco today toddler toe together toilet token tomato tomorrow tone tongue tonight tool tooth top topic topple torch tornado tortoise toss total tourist toward tower town toy track trade traffic tragic train transfer trap trash travel tray treat tree trend trial tribe trick trigger trim trip trophy trouble truck true truly trumpet trust truth try tube tuition tumble tuna tunnel turkey turn turtle twelve twenty twice twin twist two type typical ugly umbrella unable unaware uncle uncover under undo unfair unfold unhappy uniform unique unit universe unknown unlock until unusual unveil update upgrade uphold upon upper upset urban urge usage use used useful useless usual utility vacant vacuum vague valid valley valve van vanish vapor various vast vault vehicle velvet vendor venture venue verb verify version very vessel veteran viable vibrant vicious victory video view village vintage violin virtual virus visa visit visual vital vivid vocal voice void volcano volume vote voyage wage wagon wait walk wall walnut want warfare warm warrior wash wasp waste water wave way wealth weapon wear weasel weather web wedding weekend weird welcome west wet whale what wheat wheel when where whip whisper wide width wife wild will win window wine wing wink winner winter wire wisdom wise wish witness wolf woman wonder wood wool word work world worry worth wrap wreck wrestle wrist write wrong yard year yellow you young youth zebra zero zone zoo'.split(' ');
+const SYNC_API = 'https://api.github.com';
+const SYNC_META = 'memochat-sync.json';
+const SYNC_PART = 8*1024*1024;            // attachment piece size (GitHub accepts blobs up to 100 MB)
+const SYNC_EVERY = DAY;                   // automatic sync at most once a day
+const SYNC_RETRY = 30*60000;              // after a failed attempt, wait before trying again automatically
+const SYNC_STALE = 300*DAY;               // ignore devices that have not synced for this long
+const RE_REPO = /^[A-Za-z0-9-]{1,39}\/[A-Za-z0-9._-]{1,100}$/;
+const RE_BRANCH = /^mc-[a-f0-9]{12}$/;
+const RE_PART = /^a-([A-Za-z0-9_-]{1,80})-(\d{1,5})$/;
+let syncCfg = null;        // {repo, deviceId, branch, lastSync, lastAttempt, lastError, seen:{branch:commit}, files:{attId:[blob sha…]}, upHash, joined, tokenAt}
+let syncSec = null;        // {token, code}
+let syncKey = null;        // CryptoKey from the pairing code
+let syncBusy = false, syncProg = '';
+const syncOn = () => !!(syncCfg && syncSec && syncKey);
+
+class SyncError extends Error { constructor(kind, status, detail){ super(kind); this.kind=kind; this.status=status||0; this.detail=detail||''; } }
+
+/* ---------- pairing code and key ---------- */
+function syncNewCode(){ return [...crypto.getRandomValues(new Uint16Array(8))].map(x=>SYNC_WORDS[x & 2047]).join(' '); }
+// accepts the 8 words in any case, with numbers or punctuation between them; 4 letters are enough (unique in the list)
+function syncParseCode(s){
+  const ws=String(s||'').toLowerCase().replace(/[^a-z]+/g,' ').trim().split(' ').filter(Boolean);
+  if(ws.length!==8) return null;
+  const out=[];
+  for(const w of ws){ const m = SYNC_WORDS.includes(w) ? w : (w.length>=4 ? SYNC_WORDS.find(x=>x.startsWith(w.slice(0,4))) : null); if(!m) return null; out.push(m); }
+  return out.join(' ');
+}
+async function syncDeriveKey(code){
+  const te=new TextEncoder(), ikm=await crypto.subtle.importKey('raw', te.encode(code), 'HKDF', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'HKDF', hash:'SHA-256', salt:te.encode('MemoChat sync v1'), info:te.encode('data')}, ikm, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+}
+// one encrypted piece = one record of the backup format: [IV 12 B][length 4 B][AES-GCM], AAD "<name>|<n>|<last>"
+function syncSeal(key, name, i, last, u8){ return encRecord(key, name, i, last, u8); }
+async function syncOpen(key, name, i, last, u8){
+  if(!(u8 instanceof Uint8Array) || u8.length<16+16) throw new Error('short');
+  const len=new DataView(u8.buffer, u8.byteOffset, 16).getUint32(12,false);
+  if(16+len!==u8.length) throw new Error('length');
+  return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM', iv:u8.slice(0,12), additionalData:aad(name,i,last)}, key, u8.subarray(16)));
+}
+const SYNC_CHECK = 'MemoChat sync check';
+async function syncCheckBlob(key){ return b64(await syncSeal(key, 'check', 0, true, new TextEncoder().encode(SYNC_CHECK))); }
+async function syncCheckOk(key, check){ try{ return new TextDecoder().decode(await syncOpen(key, 'check', 0, true, unb64(check)))===SYNC_CHECK; }catch(e){ return false; } }
+async function gzip(u8, on){
+  const s=new Blob([u8]).stream().pipeThrough(on ? new CompressionStream('gzip') : new DecompressionStream('gzip'));
+  return new Uint8Array(await new Response(s).arrayBuffer());
+}
+async function sha256hex(s){ return [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b=>b.toString(16).padStart(2,'0')).join(''); }
+
+/* ---------- token and code: Android Keystore (APK) / non-extractable key in IndexedDB (web) ---------- */
+async function syncSecretSave(o){
+  if(NATIVE){ try{ return !!(NATIVE.secretSet('syncToken', o.token) && NATIVE.secretSet('syncCode', o.code)); }catch(e){ return false; } }
+  try{
+    const k=await crypto.subtle.generateKey({name:'AES-GCM', length:256}, false, ['encrypt','decrypt']), iv=crypto.getRandomValues(new Uint8Array(12));
+    const ct=await crypto.subtle.encrypt({name:'AES-GCM', iv}, k, new TextEncoder().encode(JSON.stringify({token:o.token, code:o.code})));
+    await Store.kvPut('syncSecret', {k, iv, ct}); return true;
+  }catch(e){ console.warn('sync secret', e); return false; }
+}
+async function syncSecretLoad(){
+  if(NATIVE){ try{ const token=NATIVE.secretGet('syncToken'), code=NATIVE.secretGet('syncCode'); return token&&code ? {token, code} : null; }catch(e){ return null; } }
+  try{ const v=await Store.kvGet('syncSecret'); if(!v || !v.k || !v.iv || !v.ct) return null;
+    const o=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM', iv:v.iv}, v.k, v.ct)));
+    return typeof o.token==='string' && typeof o.code==='string' ? {token:o.token, code:o.code} : null;
+  }catch(e){ return null; }
+}
+async function syncSecretDel(){
+  if(NATIVE){ try{ NATIVE.secretDel('syncToken'); NATIVE.secretDel('syncCode'); }catch(e){} return; }
+  try{ await Store.kvDel('syncSecret'); }catch(e){}
+}
+function syncCleanCfg(c){
+  if(!c || typeof c!=='object' || !RE_REPO.test(c.repo||'') || !RE_BRANCH.test(c.branch||'')) return null;
+  const seen={}, files={};
+  if(c.seen && typeof c.seen==='object') for(const k of Object.keys(c.seen)) if(RE_BRANCH.test(k) && /^[a-f0-9]{40}$/.test(c.seen[k])) seen[k]=c.seen[k];
+  if(c.files && typeof c.files==='object') for(const k of Object.keys(c.files)){ const v=c.files[k]; if(RE_ID.test(k) && Array.isArray(v) && v.length && v.every(s=>/^[a-f0-9]{40}$/.test(s))) files[k]=v.slice(); }
+  return {repo:c.repo, deviceId:c.branch.slice(3), branch:c.branch, lastSync:num(c.lastSync,0), lastAttempt:num(c.lastAttempt,0), lastError:typeof c.lastError==='string'?c.lastError.slice(0,40):null,
+    seen, files, upHash:typeof c.upHash==='string'?c.upHash:null, joined:!!c.joined, tokenAt:num(c.tokenAt,Date.now())};
+}
+async function syncSaveCfg(){ try{ if(syncCfg) await Store.kvPut('sync', syncCfg); else await Store.kvDel('sync'); }catch(e){ console.warn('sync cfg', e); } }
+
+/* ---------- GitHub REST API (only api.github.com is allowed by the CSP) ---------- */
+async function gh(token, method, path, body, raw){
+  let r;
+  try{
+    r = await fetch(SYNC_API+path, {method, cache:'no-store', credentials:'omit', referrerPolicy:'no-referrer',
+      headers:Object.assign({Authorization:'Bearer '+token, Accept: raw ? 'application/vnd.github.raw+json' : 'application/vnd.github+json'}, body ? {'Content-Type':'application/json'} : {}),
+      body: body ? JSON.stringify(body) : undefined});
+  }catch(e){ throw new SyncError('offline'); }
+  if(r.status===401) throw new SyncError('token', 401);
+  if(!r.ok){ let m=''; try{ m=String((await r.json()).message||''); }catch(e){} throw new SyncError(r.status===404?'notfound':r.status===403?'forbidden':'http', r.status, m.slice(0,200)); }
+  if(raw) return new Uint8Array(await r.arrayBuffer());
+  if(r.status===204) return null;
+  try{ return await r.json(); }catch(e){ throw new SyncError('http', r.status, 'json'); }
+}
+// checks the token and the repository; returns "owner/name"
+async function syncCheckRepo(token, input){
+  let repo=String(input||'').trim().replace(/^https:\/\/github\.com\//,'').replace(/\.git$/,'').replace(/\/+$/,'');
+  if(!repo.includes('/')){ const u=await gh(token,'GET','/user'); if(!u || typeof u.login!=='string') throw new SyncError('http'); repo=u.login+'/'+(repo||'memochat-sync'); }
+  if(!RE_REPO.test(repo)) throw new SyncError('notfound');
+  const info=await gh(token,'GET',`/repos/${repo}`);
+  if(!info || info.private!==true) throw new SyncError('public');
+  return info.full_name && RE_REPO.test(info.full_name) ? info.full_name : repo;
+}
+async function syncReadMeta(token, repo){
+  let r;
+  try{ r=await gh(token,'GET',`/repos/${repo}/contents/${SYNC_META}`); }
+  catch(e){ if(e.kind==='notfound') return null; throw e; }
+  try{ const m=JSON.parse(new TextDecoder().decode(unb64(String(r.content||'').replace(/\s+/g,'')))); if(m && m.app==='MemoChat' && m.sync===1 && typeof m.check==='string') return m; }catch(e){}
+  throw new SyncError('meta');
+}
+
+/* ---------- merging two states ---------- */
+const histKey = v => `${v.at}|${v.type}|${v.text}|${v.title}|${JSON.stringify(v.items||[])}`;
+const contentOf = n => JSON.stringify([n.type, n.text, n.title, n.items||[]]);
+// L = this device, R = another device. o.since: last sync (to recognise edits on both sides), o.join: first sync of this device
+function syncMerge(L, R, o){
+  const now=o.now||Date.now();
+  const tombs=Object.assign({}, L.tombs||{});
+  for(const [id,at] of Object.entries(R.tombs||{})) if(!(tombs[id]>=at)) tombs[id]=at;
+  let lThreads=L.threads, lNotes=L.notes;
+  if(o.join){
+    // a device joining: its default threads become the ones that already exist; threads with the same name are joined
+    const rIds=new Set(R.threads.map(x=>x.id));
+    if(!lNotes.length) lThreads=lThreads.filter(x=>rIds.has(x.id));
+    else {
+      const key = x => x.system==='inbox' ? '\u0000inbox' : x.name.trim().toLowerCase();
+      const byKey=new Map(); R.threads.filter(x=>!x.deletedAt).forEach(x=>{ if(!byKey.has(key(x))) byKey.set(key(x), x.id); });
+      const remap=new Map(); lThreads.forEach(x=>{ if(!rIds.has(x.id) && !x.deletedAt && byKey.has(key(x))) remap.set(x.id, byKey.get(key(x))); });
+      if(remap.size){ lThreads=lThreads.filter(x=>!remap.has(x.id)); lNotes=lNotes.map(n=>remap.has(n.threadId) ? Object.assign({}, n, {threadId:remap.get(n.threadId), updatedAt:now}) : n); }
+      // empty threads the other devices don't have are default threads deleted there: not brought back
+      const used=new Set(lNotes.map(n=>n.threadId)); lThreads=lThreads.filter(x=>rIds.has(x.id) || used.has(x.id));
+    }
+  }
+  const histKeys = n => (n.history||[]).map(histKey).join('\n');
+  // newer wins; on a tie the same item is picked on every device
+  const pick = (a,b) => { const ua=a.updatedAt||0, ub=b.updatedAt||0; if(ua!==ub) return ua>ub?[a,b]:[b,a]; return sigOf(a)+histKeys(a)>=sigOf(b)+histKeys(b)?[a,b]:[b,a]; };
+  const mergeNote = (w,l) => {
+    const hist=new Map(); (w.history||[]).concat(l.history||[]).forEach(v=>hist.set(histKey(v), v));
+    let editedAt=w.editedAt;
+    // both sides changed it since the last sync: keep the losing text in the history, nothing is lost
+    if(contentOf(w)!==contentOf(l) && (w.updatedAt||0)>o.since && (l.updatedAt||0)>o.since){
+      const v={type:l.type, text:l.text, title:l.title, items:JSON.parse(JSON.stringify(l.items||[])), at:l.editedAt||l.createdAt};
+      hist.set(histKey(v), v); if(!editedAt) editedAt=w.updatedAt;
+    }
+    const history=[...hist.values()].sort((a,b)=>a.at-b.at || (histKey(a)<histKey(b)?-1:1));
+    if(editedAt===w.editedAt && history.length===(w.history||[]).length && history.every((v,i)=>histKey(v)===histKey(w.history[i]))) return w;
+    return Object.assign({}, w, {history, editedAt});
+  };
+  const mergeList = (ls, rs, isNote) => {
+    const m=new Map(); ls.forEach(x=>m.set(x.id,[x,null])); rs.forEach(x=>{ const e=m.get(x.id); if(e) e[1]=x; else m.set(x.id,[null,x]); });
+    const out=[];
+    for(const [id,[a,b]] of m){
+      let x = a&&b ? (()=>{ const [w,l]=pick(a,b); return isNote ? mergeNote(w,l) : w; })() : (a||b);
+      if(tombs[id]!==undefined && tombs[id] >= (x.updatedAt||0)) continue;    // deleted forever (and not edited since)
+      out.push(x);
+    }
+    return out;
+  };
+  let threads=mergeList(lThreads, R.threads, false), notes=mergeList(lNotes, R.notes, true);
+  // same 30-day rule as the Trash on every device
+  const lim=now-30*DAY; notes=notes.filter(n=>!(n.deletedAt && n.deletedAt<lim));
+  // one Inbox: the one with the smallest id stays (same choice on every device)
+  const inboxes=threads.filter(x=>x.system==='inbox' && !x.deletedAt).sort((a,b)=>a.id<b.id?-1:1);
+  const keep=inboxes[0];
+  if(inboxes.length>1){
+    const gone=new Set(inboxes.slice(1).map(x=>x.id));
+    threads=threads.filter(x=>!gone.has(x.id)); gone.forEach(id=>{ tombs[id]=now; });
+    notes=notes.map(n=>gone.has(n.threadId) ? Object.assign({}, n, {threadId:keep.id, updatedAt:now}) : n);
+  }
+  // notes whose thread no longer exists anywhere go to the Inbox
+  const tids=new Set(threads.map(x=>x.id));
+  if(keep) notes=notes.map(n=>tids.has(n.threadId) ? n : Object.assign({}, n, {threadId:keep.id, updatedAt:now}));
+  else notes=notes.filter(n=>tids.has(n.threadId));
+  threads=threads.filter(x=>!(x.deletedAt && !notes.some(n=>n.threadId===x.id)));
+  return {threads, notes, tombs};
+}
+
+/* ---------- one sync run ---------- */
+function syncSetProg(s){ syncProg=s; const el=$('#syncLine'); if(el) el.textContent=s; }
+async function syncNow(manual){
+  if(!syncOn() || syncBusy) return false;
+  if(Store.mode!=='idb') return false;
+  syncBusy=true; syncSetProg(t('syncing')); if(ui.left==='settings') renderLeft();
+  const cfg=syncCfg, token=syncSec.token, key=syncKey, P=`/repos/${cfg.repo}`;
+  cfg.lastAttempt=Date.now(); syncSaveCfg();
+  let damaged=false, ok=false;
+  try{
+    // 0) changes made a moment ago are stamped and saved first
+    clearTimeout(saveTimer); stampChanges(); await Store.save(S); nativeAlarms();
+    // 1) what the devices have uploaded
+    const refs=await gh(token,'GET',`${P}/git/matching-refs/heads/mc-`);
+    const known=new Set(), remote=new Map(), states=[];
+    let ownCommit=null;
+    for(const ref of (Array.isArray(refs)?refs:[])){
+      const branch=String(ref.ref||'').replace(/^refs\/heads\//,''), csha=ref.object && ref.object.sha;
+      if(!RE_BRANCH.test(branch) || !/^[a-f0-9]{40}$/.test(csha||'')) continue;
+      const own = branch===cfg.branch; if(own) ownCommit=csha;
+      const c=await gh(token,'GET',`${P}/git/commits/${csha}`);
+      if(!own && Date.parse((c.committer||{}).date||0) < Date.now()-SYNC_STALE) continue;
+      const tsha=c && c.tree && c.tree.sha; if(!/^[a-f0-9]{40}$/.test(tsha||'')) throw new SyncError('http', 0, 'tree');
+      const tr=await gh(token,'GET',`${P}/git/trees/${tsha}`);
+      let stateSha=null; const parts=new Map();
+      for(const e of (Array.isArray(tr.tree)?tr.tree:[])){
+        if(e.type!=='blob' || !/^[a-f0-9]{40}$/.test(e.sha||'')) continue;
+        known.add(e.sha);
+        if(e.path==='state') stateSha=e.sha;
+        const m=RE_PART.exec(e.path||''); if(m){ const a=parts.get(m[1])||[]; a[+m[2]]=e.sha; parts.set(m[1], a); }
+      }
+      for(const [id,a] of parts) if(!remote.has(id) && a.length && a.every(Boolean)) remote.set(id, a);
+      if(!own && stateSha && cfg.seen[branch]!==csha) states.push({branch, csha, sha:stateSha});
+    }
+    // 2) merge the other devices' states
+    let changed=false;
+    for(const st of states){
+      let data;
+      try{
+        const u8=await syncOpen(key, 'state', 0, true, await gh(token,'GET',`${P}/git/blobs/${st.sha}`,null,true));
+        const body = u8[0]===1 ? await gzip(u8.subarray(1), false) : u8.subarray(1);
+        data=JSON.parse(new TextDecoder().decode(body));
+        if(!data || data.app!=='MemoChat' || !Array.isArray(data.threads) || !Array.isArray(data.notes)) throw new Error('shape');
+      }catch(e){ if(e instanceof SyncError) throw e; console.warn('sync: unreadable state of', st.branch, e); damaged=true; continue; }
+      const R=sanitizeData({threads:data.threads, notes:data.notes, tombs:data.tombs});
+      clearTimeout(saveTimer); stampChanges();       // edits made while downloading count as local changes
+      const m=syncMerge({threads:S.threads, notes:S.notes, tombs:S.tombs}, R, {since:cfg.lastSync||0, join:!cfg.joined, now:Date.now()});
+      S.threads=m.threads; S.notes=m.notes; S.tombs=m.tombs; ensureInbox(); resetSigs();
+      cfg.seen[st.branch]=st.csha; cfg.joined=true; changed=true;
+    }
+    if(changed){ await Store.save(S); render(); nativeAlarms(); }
+    // 3) attachments this device doesn't have yet
+    const atts=new Map(); S.notes.forEach(n=>(n.attachments||[]).forEach(a=>{ if(!atts.has(a.id)) atts.set(a.id, a); }));
+    const have=new Set(await Store.fileKeys());
+    const get=[...atts.values()].filter(a=>!have.has(a.id) && remote.has(a.id));
+    for(let i=0;i<get.length;i++){
+      const a=get[i], shas=remote.get(a.id), out=[];
+      syncSetProg(t('syncFiles', i+1, get.length));
+      try{ for(let j=0;j<shas.length;j++) out.push(await syncOpen(key, 'a-'+a.id, j, j===shas.length-1, await gh(token,'GET',`${P}/git/blobs/${shas[j]}`,null,true))); }
+      catch(e){ if(e instanceof SyncError) throw e; console.warn('sync: unreadable file', a.id, e); damaged=true; continue; }
+      if(!S.notes.some(n=>(n.attachments||[]).some(x=>x.id===a.id))) continue;   // its note went away meanwhile
+      await Store.putFile(a.id, new Blob(out, {type:a.type}));
+    }
+    // 4) upload this device's state (and attachments nobody has uploaded yet).
+    //    Pieces uploaded by an earlier, interrupted run are re-used (trust=true); only if GitHub has
+    //    dropped them meanwhile (the tree is refused) they are uploaded again.
+    const upFiles = async trust => {
+      const files={}, mine = id => cfg.files[id] && (trust || cfg.files[id].every(s=>known.has(s)));
+      const upl=[...atts.keys()].filter(id=>!remote.has(id) && !mine(id));
+      let done=0;
+      for(const id of atts.keys()){
+        if(remote.has(id)){ files[id]=remote.get(id); continue; }
+        if(mine(id)){ files[id]=cfg.files[id]; continue; }
+        const b=await Store.getFile(id).catch(()=>null); if(!b) continue;
+        syncSetProg(t('syncUp', ++done, upl.length));
+        const n=Math.max(1, Math.ceil(b.size/SYNC_PART)), shas=[];
+        for(let j=0;j<n;j++){
+          const part=new Uint8Array(await b.slice(j*SYNC_PART, (j+1)*SYNC_PART).arrayBuffer());
+          const r=await gh(token,'POST',`${P}/git/blobs`, {content:b64(await syncSeal(key, 'a-'+id, j, j===n-1, part)), encoding:'base64'});
+          shas.push(r.sha); known.add(r.sha);
+        }
+        files[id]=shas; cfg.files[id]=shas; await syncSaveCfg();      // remembered, so an interrupted run doesn't upload it again
+      }
+      return files;
+    };
+    for(let attempt=0; ; attempt++){
+      const files=await upFiles(attempt===0);
+      clearTimeout(saveTimer); stampChanges(); await Store.save(S);
+      const json=JSON.stringify({app:'MemoChat', format:1, threads:S.threads, notes:S.notes, tombs:S.tombs});
+      const hash=await sha256hex(json+'\n'+JSON.stringify(Object.entries(files).sort()));
+      cfg.files=files;
+      if(hash===cfg.upHash && ownCommit) break;
+      syncSetProg(t('syncing'));
+      let body=new TextEncoder().encode(json), flag=0;
+      try{ body=await gzip(body, true); flag=1; }catch(e){}
+      const plain=new Uint8Array(body.length+1); plain[0]=flag; plain.set(body,1);
+      const blob=await gh(token,'POST',`${P}/git/blobs`, {content:b64(await syncSeal(key, 'state', 0, true, plain)), encoding:'base64'});
+      const tree=[{path:'state', mode:'100644', type:'blob', sha:blob.sha}];
+      for(const [id,shas] of Object.entries(files)) shas.forEach((s,j)=>tree.push({path:`a-${id}-${j}`, mode:'100644', type:'blob', sha:s}));
+      let tr;
+      try{ tr=await gh(token,'POST',`${P}/git/trees`, {tree}); }
+      catch(e){ if(attempt===0 && e instanceof SyncError && e.status===422) continue; throw e; }
+      const cm=await gh(token,'POST',`${P}/git/commits`, {message:'MemoChat sync', tree:tr.sha, parents:[]});
+      if(ownCommit) await gh(token,'PATCH',`${P}/git/refs/heads/${cfg.branch}`, {sha:cm.sha, force:true});
+      else await gh(token,'POST',`${P}/git/refs`, {ref:'refs/heads/'+cfg.branch, sha:cm.sha});
+      cfg.upHash=hash;
+      break;
+    }
+    cfg.joined=true; cfg.lastSync=Date.now(); cfg.lastError=damaged?'damaged':null; ok=true;
+  }catch(e){
+    console.warn('sync failed', e);
+    cfg.lastError = e instanceof SyncError ? e.kind : 'other';
+    if(e instanceof SyncError && e.kind==='http' && e.status) cfg.lastError='http:'+e.status;
+  }finally{
+    syncBusy=false; syncProg='';
+    if(syncCfg===cfg) await syncSaveCfg();
+    if(ui.left==='settings') renderLeft();
+  }
+  if(ok && manual) snack(damaged ? t('syncErrDamaged') : t('syncDone'));
+  else if(!ok && (manual || ['token','notfound','forbidden','public'].includes(cfg.lastError)))
+    snack(syncErrText(cfg.lastError), manual || ui.left==='settings' ? null : t('settings'), ()=>goLeft('settings'), 10000);
+  return ok;
+}
+function syncErrText(k){
+  if(!k) return '';
+  if(k==='offline') return t('syncErrOffline');
+  if(k==='token') return t('syncErrToken');
+  if(k==='notfound' || k==='forbidden') return t('syncErrRepo');
+  if(k==='public') return t('syncErrPublic');
+  if(k==='damaged' || k==='meta') return t('syncErrDamaged');
+  if(k.startsWith('http')) return t('syncErrHttp', k.slice(5)||'?');
+  return t('syncErrOther');
+}
+// automatic: when the app opens or comes back, at most once a day
+function syncMaybe(){
+  if(!syncOn() || syncBusy || navigator.onLine===false) return;
+  const now=Date.now();
+  if(now-(syncCfg.lastSync||0) < SYNC_EVERY || now-(syncCfg.lastAttempt||0) < SYNC_RETRY) return;
+  syncNow(false);
+}
+async function syncBoot(){
+  if(Store.mode!=='idb') return;
+  try{ syncCfg=syncCleanCfg(await Store.kvGet('sync')); }catch(e){ syncCfg=null; }
+  if(syncCfg){ syncSec=await syncSecretLoad(); if(syncSec){ try{ syncKey=await syncDeriveKey(syncSec.code); }catch(e){ syncKey=null; } } }
+  if(ui.left==='settings') renderLeft();
+  setTimeout(syncMaybe, 3000);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') setTimeout(syncMaybe, 1500); });
+  window.addEventListener('online', ()=>setTimeout(syncMaybe, 3000));
+}
+
+/* ---------- setting up, pairing code, disconnecting ---------- */
+function syncCodeHTML(code){
+  return `<ol class="codewords">${code.split(' ').map(w=>`<li>${esc(w)}</li>`).join('')}</ol>`;
+}
+function syncSetup(){
+  const ov=overlay(`<div class="dlg"><h3>${t('syncT')}</h3><p>${t('syncIntro')}</p>
+    <label class="field">${t('syncToken')}<input id="syTok" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>
+    <label class="field">${t('syncRepo')}<input id="syRepo" type="text" autocomplete="off" spellcheck="false" value="memochat-sync"></label>
+    <p id="syErr" class="err" style="color:var(--danger);display:none"></p>
+    <div class="btns"><button class="btn" data-x="no">${t('cancel')}</button><button class="btn primary" data-x="ok">${t('syncConnect')}</button></div></div>`, true);
+  setTimeout(()=>$('#syTok',ov).focus(),30);
+  let busy=false;
+  const err = s => { const e=$('#syErr',ov); e.textContent=s; e.style.display=s?'block':'none'; };
+  ov.addEventListener('click', async e=>{
+    const x=e.target.closest('[data-x]'); if(!x || busy) return;
+    if(x.dataset.x==='no'){ closeOverlay(ov); return; }
+    const token=$('#syTok',ov).value.trim();
+    if(!/^[A-Za-z0-9_]{20,255}$/.test(token)){ err(t('syncErrToken')); return; }
+    busy=true; x.disabled=true; err(''); x.textContent=t('syncChecking');
+    try{
+      const repo=await syncCheckRepo(token, $('#syRepo',ov).value);
+      const meta=await syncReadMeta(token, repo);
+      closeOverlay(ov);
+      let code;
+      if(meta){ code=await syncAskCode(meta.check); if(!code) return; }
+      else {
+        code=syncNewCode();
+        if(!await syncShowCode(code, true)) return;
+        const k=await syncDeriveKey(code);
+        const content=b64(new TextEncoder().encode(JSON.stringify({app:'MemoChat', sync:1, created:new Date().toISOString(), check:await syncCheckBlob(k)}, null, 1)));
+        try{ await gh(token,'PUT',`/repos/${repo}/contents/${SYNC_META}`, {message:'MemoChat sync', content}); }
+        catch(e2){
+          // created meanwhile by another device: use that one
+          const m2=await syncReadMeta(token, repo).catch(()=>null); if(!m2) throw e2;
+          code=await syncAskCode(m2.check); if(!code) return;
+        }
+      }
+      await syncConnect(token, repo, code);
+    }catch(e2){
+      console.warn('sync setup', e2);
+      const k = e2 instanceof SyncError ? e2.kind : 'other';
+      if(overlays.includes(ov)){ busy=false; x.disabled=false; x.textContent=t('syncConnect'); err(syncErrText(k)); }
+      else snack(syncErrText(k), null, null, 10000);
+    }
+  });
+}
+async function syncConnect(token, repo, code){
+  if(!await syncSecretSave({token, code})){ snack(t('syncErrOther')); return; }
+  const dev=[...crypto.getRandomValues(new Uint8Array(6))].map(b=>b.toString(16).padStart(2,'0')).join('');
+  syncCfg={repo, deviceId:dev, branch:'mc-'+dev, lastSync:0, lastAttempt:0, lastError:null, seen:{}, files:{}, upHash:null, joined:false, tokenAt:Date.now()};
+  syncSec={token, code}; syncKey=await syncDeriveKey(code);
+  await syncSaveCfg();
+  if(ui.left==='settings') renderLeft();
+  await syncNow(true);
+}
+// shows the 8 words; first=true: "I've saved it" is required
+function syncShowCode(code, first){
+  return new Promise(res=>{
+    const ov=overlay(`<div class="dlg"><h3>${first?t('syncCodeT'):t('syncCode')}</h3><p>${first?t('syncCodeNew'):t('syncCodeShow')}</p>${syncCodeHTML(code)}
+      <div class="btns"><button class="btn" data-x="copy">${t('copyCode')}</button>${first?`<button class="btn" data-x="no">${t('cancel')}</button>`:''}<button class="btn primary" data-x="ok">${first?t('syncCodeSaved'):t('close')}</button></div></div>`, true, ()=>res(false));
+    ov.addEventListener('click', async e=>{ const x=e.target.closest('[data-x]'); if(!x) return;
+      if(x.dataset.x==='copy'){ snack(await copyText(code.split(' ').map((w,i)=>`${i+1}. ${w}`).join('\n')) ? t('copied') : t('copyFail')); return; }
+      closeOverlay(ov); res(x.dataset.x==='ok'); });
+  });
+}
+// asks for the code of an existing mailbox until it matches; resolves with the normalised code or null
+function syncAskCode(check){
+  return new Promise(res=>{
+    const ov=overlay(`<div class="dlg"><h3>${t('syncEnterT')}</h3><p>${t('syncEnter')}</p>
+      <label class="field"><textarea id="syCode" rows="3" autocomplete="off" autocapitalize="none" spellcheck="false"></textarea></label>
+      <p id="syCErr" style="color:var(--danger);display:none"></p>
+      <div class="btns"><button class="btn" data-x="no">${t('cancel')}</button><button class="btn primary" data-x="ok">${t('syncConnect')}</button></div></div>`, true, ()=>res(null));
+    setTimeout(()=>$('#syCode',ov).focus(),30);
+    let busy=false;
+    ov.addEventListener('click', async e=>{ const x=e.target.closest('[data-x]'); if(!x || busy) return;
+      if(x.dataset.x==='no'){ closeOverlay(ov); res(null); return; }
+      const er=$('#syCErr',ov), code=syncParseCode($('#syCode',ov).value);
+      if(!code){ er.textContent=t('syncCodeBad'); er.style.display='block'; return; }
+      busy=true;
+      const ok=await syncCheckOk(await syncDeriveKey(code), check);
+      busy=false;
+      if(!ok){ er.textContent=t('syncCodeWrong'); er.style.display='block'; return; }
+      closeOverlay(ov); res(code); });
+  });
+}
+function syncNewToken(){
+  const ov=overlay(`<div class="dlg"><h3>${t('syncNewToken')}</h3><p>${t('syncNewTokenSub', esc(syncCfg.repo))}</p>
+    <label class="field">${t('syncToken')}<input id="syTok" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>
+    <p id="syErr" style="color:var(--danger);display:none"></p>
+    <div class="btns"><button class="btn" data-x="no">${t('cancel')}</button><button class="btn primary" data-x="ok">${t('save')}</button></div></div>`, true);
+  setTimeout(()=>$('#syTok',ov).focus(),30);
+  let busy=false;
+  ov.addEventListener('click', async e=>{ const x=e.target.closest('[data-x]'); if(!x || busy) return;
+    if(x.dataset.x==='no'){ closeOverlay(ov); return; }
+    const token=$('#syTok',ov).value.trim(), er=$('#syErr',ov);
+    const fail = s => { er.textContent=s; er.style.display='block'; busy=false; x.disabled=false; };
+    if(!/^[A-Za-z0-9_]{20,255}$/.test(token)) return fail(t('syncErrToken'));
+    busy=true; x.disabled=true;
+    try{
+      const repo=await syncCheckRepo(token, syncCfg.repo);
+      const meta=await syncReadMeta(token, repo);
+      if(!meta || !await syncCheckOk(syncKey, meta.check)) return fail(t('syncErrOtherBox'));
+      if(!await syncSecretSave({token, code:syncSec.code})) return fail(t('syncErrOther'));
+      syncSec={token, code:syncSec.code}; syncCfg.tokenAt=Date.now(); syncCfg.lastError=null; syncCfg.lastAttempt=0; await syncSaveCfg();
+      closeOverlay(ov); await syncNow(true);
+    }catch(e2){ fail(syncErrText(e2 instanceof SyncError ? e2.kind : 'other')); }
+  });
+}
+async function syncDisconnect(){
+  if(!await confirmDlg(t('syncOff'), t('syncOffConfirm'), t('syncOffBtn'), true)) return;
+  const cfg=syncCfg, sec=syncSec;
+  syncCfg=null; syncSec=null; syncKey=null;
+  await syncSecretDel(); await syncSaveCfg();
+  // this device's branch is no longer needed (the other devices already have its notes)
+  if(cfg && sec) gh(sec.token,'DELETE',`/repos/${cfg.repo}/git/refs/heads/${cfg.branch}`).catch(()=>{});
+  if(ui.left==='settings') renderLeft();
+  snack(t('syncOffDone'));
+}
+function syncSettingsHTML(){
+  if(Store.mode!=='idb') return '';
+  if(!syncOn()){
+    const broken = !!syncCfg;    // settings exist but the token/code couldn't be read
+    return `<div class="section-h">${t('syncSection')}</div><div class="grp">
+      <button class="it" data-act="sync-setup"><span class="ic">${I.sync}</span><div class="grow">${t('syncSetup')}<div class="small">${broken?t('syncBroken'):t('syncSetupSub')}</div></div></button></div>`;
+  }
+  const c=syncCfg, err=c.lastError && !syncBusy ? syncErrText(c.lastError) : '';
+  const line = syncBusy ? (syncProg||t('syncing')) : (c.lastSync ? t('syncLast', fullWhen(c.lastSync)) : t('syncNever'));
+  const old = Date.now()-(c.tokenAt||Date.now()) > 350*DAY;
+  return `<div class="section-h">${t('syncSection')}</div><div class="grp">
+    <button class="it" data-act="sync-now"><span class="ic">${I.sync}</span><div class="grow">${t('syncNow')}<div class="small" id="syncLine">${esc(line)}</div>${err?`<div class="small" style="color:var(--danger)">${esc(err)}</div>`:''}</div></button>
+    ${c.lastError==='token'||old?`<button class="it" data-act="sync-token"><span class="ic">${I.edit}</span><div class="grow">${t('syncNewToken')}<div class="small">${old&&c.lastError!=='token'?t('syncTokenOld'):esc(c.repo)}</div></div></button>`:''}
+    <button class="it" data-act="sync-code"><span class="ic">${I.eye}</span><div class="grow">${t('syncCode')}<div class="small">${t('syncCodeSub')}</div></div></button>
+    <button class="it" data-act="sync-off"><span class="ic">${I.x}</span><div class="grow">${t('syncOff')}<div class="small">${t('syncOffSub', esc(c.repo))}</div></div></button>
+  </div>`;
+}
+document.addEventListener('click', e=>{
+  const a=e.target.closest('[data-act^="sync-"]'); if(!a || e.target.closest('.ov')) return;
+  const act=a.dataset.act;
+  if(act==='sync-setup') return syncSetup();
+  if(act==='sync-now') return syncNow(true);
+  if(act==='sync-token') return syncOn() && syncNewToken();
+  if(act==='sync-code') return syncOn() && syncShowCode(syncSec.code, false);
+  if(act==='sync-off') return syncDisconnect();
+});
+
+/* =========================================================
    Boot
    ========================================================= */
 (async function boot(){
@@ -1950,16 +2505,17 @@ document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==
   applyTheme();
   await Store.init();
   const saved = await Store.load();
-  if(saved && Array.isArray(saved.threads)){ const c=sanitizeData(saved); S = {threads:c.threads, notes:c.notes, settings:Object.assign({}, DEFAULT_SETTINGS, c.settings)}; setTimeout(gcFiles, 8000); }
+  if(saved && Array.isArray(saved.threads)){ const c=sanitizeData(saved); S = {threads:c.threads, notes:c.notes, tombs:c.tombs, settings:Object.assign({}, DEFAULT_SETTINGS, c.settings)}; setTimeout(gcFiles, 8000); }
   else { S = seed(); persist(); }
+  stampChanges();            // remembers the loaded state; anything purged below gets a tombstone
   ensureInbox(); purgeTrash();
   setInterval(checkReminders, 30000); setTimeout(checkReminders, 1500);
   if(isWide()){ const inbox=S.threads.find(x=>x.system==='inbox'); ui.threadId=inbox.id; ui.showThread=true; }
-  stampChanges();
   render();
   registerSW();
   handleLaunch();
   if(NATIVE) nativeBoot();
+  syncBoot();
 })();
 
 /* =========================================================

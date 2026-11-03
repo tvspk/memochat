@@ -61,6 +61,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class MainActivity extends Activity {
     static final String HOST = "appassets.androidplatform.net";
+    static final String SYNC_HOST = "api.github.com";
     static final String BASE = "https://" + HOST + "/";
     static final String UPDATE_URL = "https://github.com/tvspk/memochat/releases/latest/download/version.json";
 
@@ -217,6 +218,8 @@ public class MainActivity extends Activity {
             Uri u = req.getUrl();
             String scheme = u.getScheme();
             if (!"https".equals(scheme) && !"http".equals(scheme)) return null;       // data:/blob: are handled by WebView itself
+            // sync: the GitHub API only (encrypted data, the page's CSP allows nothing else either)
+            if ("https".equals(scheme) && SYNC_HOST.equals(u.getHost()) && u.getPort() == -1) return null;
             if (!HOST.equals(u.getHost()) || !"https".equals(scheme)) return error(403);   // no other site may load
             String path = u.getPath();
             if (path == null || path.equals("/")) path = "/index.html";

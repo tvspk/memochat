@@ -4,11 +4,26 @@ Notes as a chat with yourself. An installable, offline-first web app (PWA) for A
 
 **App:** https://tvspk.github.io/memochat/
 
-- Your notes are stored only on your device (IndexedDB in the browser). Nothing is uploaded anywhere.
+- Your notes are stored on your device (IndexedDB in the browser, or inside the Android app). Nothing is uploaded unless you turn on sync.
 - Attachments (photos and any files) are kept in their original quality, stored on the device next to the notes.
 - Back up regularly: ⋮ → Backup & settings → Back up to file. The backup is one ZIP file with notes and attachments, optionally encrypted with a password. Older JSON backups (also from the prototype) can still be restored.
 - Share to MemoChat from other apps (text, links, one photo): Share → MemoChat → choose a thread.
 - Long-press the app icon for shortcuts: Inbox, Work, Search.
+
+## Sync (optional)
+
+Phone and computer can exchange changes once a day (and on "Sync now") through a **private** GitHub
+repository of your own (e.g. `memochat-sync`), used as an encrypted mailbox:
+
+- Set it up in ⋮ → Backup & settings → Sync with a fine-grained token that can access only that repository
+  (Repository permissions → Contents: Read and write). The first device shows an 8-word pairing code;
+  enter it on the other device.
+- Everything stored in the repository is encrypted (AES-256-GCM, key derived from the pairing code with HKDF).
+  The token and the code stay on the device (Android Keystore in the app, a non-extractable key in the browser).
+- Each device writes its whole state to its own branch `mc-<device id>` (one commit without history);
+  attachments are stored as encrypted pieces of up to 8 MiB. The newer change of a note wins; if both devices
+  changed the same note, the other version is kept in the note's edit history. Notes deleted forever stay deleted
+  (tombstones). Language and appearance are not synced.
 
 ## Structure
 

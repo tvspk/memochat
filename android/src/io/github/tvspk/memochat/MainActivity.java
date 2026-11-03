@@ -215,7 +215,9 @@ public class MainActivity extends Activity {
         @Override
         public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
             Uri u = req.getUrl();
-            if (!HOST.equals(u.getHost()) || !"https".equals(u.getScheme())) return error(403);   // nothing else may load
+            String scheme = u.getScheme();
+            if (!"https".equals(scheme) && !"http".equals(scheme)) return null;       // data:/blob: are handled by WebView itself
+            if (!HOST.equals(u.getHost()) || !"https".equals(scheme)) return error(403);   // no other site may load
             String path = u.getPath();
             if (path == null || path.equals("/")) path = "/index.html";
             Map<String, String> headers = new HashMap<>();

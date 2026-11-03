@@ -2158,7 +2158,9 @@ async function runWeeklyBackup(){
   return true;
 }
 // launches from Android: icon shortcut, notification tap, sharing from another app
-window.__mcLaunch = o => { handleNativeLaunch(o); };
+// launches that arrive before the data is loaded wait for nativeBoot()
+let nativeBooted=false; const launchQueue=[];
+window.__mcLaunch = o => { if(nativeBooted) handleNativeLaunch(o); else launchQueue.push(o); };
 async function handleNativeLaunch(o){
   if(!o || typeof o!=='object') return;
   if(o.open){
@@ -2196,6 +2198,7 @@ async function checkApkUpdate(){
 function nativeBoot(){
   let L=null; try{ const j=NATIVE.takeLaunch(); if(j) L=JSON.parse(j); }catch(e){}
   if(L) handleNativeLaunch(L);
+  nativeBooted=true; while(launchQueue.length) handleNativeLaunch(launchQueue.shift());
   nativeAlarms();
   setTimeout(()=>{ if(!L || !L.backup) weeklyPrompt(false); }, 2000);
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible'){ nativeAlarms(); setTimeout(()=>weeklyPrompt(false), 800); } });

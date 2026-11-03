@@ -63,6 +63,13 @@ fi
 "$BT/apksigner" verify --print-certs "$OUT/memochat.apk"
 rm -f "$OUT/release.jks" "$OUT/throwaway.jks"
 
+# 5) sanity checks on the finished APK (fail the build if something essential is missing)
+"$BT/aapt2" dump badging "$OUT/memochat.apk" | grep -E "^(package|sdkVersion|targetSdkVersion|uses-permission|application-label|launchable-activity):"
+for f in AndroidManifest.xml classes.dex resources.arsc assets/www/index.html assets/www/js/app.js assets/www/css/app.css assets/www/fonts/fonts.css; do
+  unzip -l "$OUT/memochat.apk" | grep -q " $f\$" || { echo "MISSING in APK: $f"; exit 1; }
+done
+echo "assets/www files: $(unzip -l "$OUT/memochat.apk" | grep -c ' assets/www/')"
+
 cat > "$OUT/version.json" <<EOF
 {"versionCode":$CODE,"versionName":"$VERSION","apk":"https://github.com/tvspk/memochat/releases/download/v$VERSION/memochat.apk"}
 EOF

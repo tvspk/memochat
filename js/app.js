@@ -43,6 +43,8 @@ const ART = {
 const sv = (d, s=20, w=2) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const I = {
   back: sv('<path d="M15 18l-6-6 6-6"/>',22),
+  reply: sv('<path d="M10 8L4 13l6 5"/><path d="M4 13h10a6 6 0 0 1 6 6v1"/>'),
+  replyS: sv('<path d="M10 8L4 13l6 5"/><path d="M4 13h10a6 6 0 0 1 6 6v1"/>',13,2.4),
   search: sv('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'),
   moon: sv('<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>'),
   sun: sv('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
@@ -78,6 +80,7 @@ const I = {
   doc: sv('<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/>'),
   newThread: sv('<path d="M4 5h16v11H8l-4 4z"/><path d="M12 8v5M9.5 10.5h5"/>'),
   cal: sv('<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'),
+  listS: sv('<path d="M10 6h10M10 12h10M10 18h10"/><path d="M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5 2.5-2.5M3.5 18l1.5 1.5 2.5-2.5"/>',12,2.2),
   calS: sv('<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',12,2.2),
   clockS: sv('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',12,2.2),
   bell: sv('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>'),
@@ -139,7 +142,7 @@ const T = {
     dates:'Dates', deadline:'Date…', setDate:'Date and time', addDate:'Date', today2:'Today', tomorrow:'Tomorrow', inWeek:'In a week', pickDate:'Pick date and time…', removeDate:'Remove date',
     date:'Date', timeOpt:'Time (optional)', allDay:'all day', overdue:'Overdue', inMin:n=>`in ${n} min`, inH:n=>`in ${n} h`,
     next30:'Next 30 days', later:'Later', laterSub:'Tap a date to see what it is', showDoneD:'Show done', hideDoneD:'Hide done', copyList:'Copy as text',
-    noDates:'No dates ahead', noDatesSub:'Add a date to any note from its menu (hold or right-click) or with + while writing.',
+    noDates:'No dates ahead', noDatesSub:'Add a date to any note from its menu (tap or right-click the note) or with + while writing.',
     soonAlert:(r,x)=>`${r}: ${x}`, open:'Open', dateSet:d=>`Date: ${d}`, dateRemoved:'Date removed', earlierDone:'Earlier (done)',
     emptyThreadT:'A blank page', archEmptyT:'Nothing in the archive',
     remind:'Reminder', rAt:'At the time', r15:'15 min before', r1h:'1 hour before', r1d:'1 day before', rMorning:'On the day at 9:00', rDayBefore:'Day before at 9:00', rCustom:'Custom date and time…', rNone:'No reminder', remindAt:'Remind me at',
@@ -191,7 +194,7 @@ const T = {
     dates:'Termíny', deadline:'Termín…', setDate:'Datum a čas', addDate:'Termín', today2:'Dnes', tomorrow:'Zítra', inWeek:'Za týden', pickDate:'Vybrat datum a čas…', removeDate:'Odebrat termín',
     date:'Datum', timeOpt:'Čas (nepovinný)', allDay:'celý den', overdue:'Po termínu', inMin:n=>`za ${n} min`, inH:n=>`za ${n} h`,
     next30:'Příštích 30 dní', later:'Později', laterSub:'Ťukni na datum a uvidíš, o co jde', showDoneD:'Zobrazit hotové', hideDoneD:'Skrýt hotové', copyList:'Kopírovat jako text',
-    noDates:'Žádné termíny', noDatesSub:'Termín přidáš z nabídky poznámky (podržení / pravé tlačítko) nebo přes + při psaní.',
+    noDates:'Žádné termíny', noDatesSub:'Termín přidáš z nabídky poznámky (ťuknutí / pravé tlačítko) nebo přes + při psaní.',
     soonAlert:(r,x)=>`${r.charAt(0).toUpperCase()+r.slice(1)}: ${x}`, open:'Otevřít', dateSet:d=>`Termín: ${d}`, dateRemoved:'Termín odebrán', earlierDone:'Dříve (hotové)',
     emptyThreadT:'Čistý list', archEmptyT:'Archiv je prázdný',
     remind:'Upozornění', rAt:'V čas termínu', r15:'15 min předem', r1h:'1 hodinu předem', r1d:'1 den předem', rMorning:'V den termínu v 9:00', rDayBefore:'Den předem v 9:00', rCustom:'Vlastní datum a čas…', rNone:'Bez upozornění', remindAt:'Upozornit',
@@ -247,7 +250,7 @@ Object.assign(T.cs,{
   backupFailed:'Zálohu se nepodařilo vytvořit.', backupDamaged:'Soubor zálohy je poškozený. Nic se nezměnilo.', backupSub:'Poznámky i přílohy (ZIP), volitelně s heslem', attachments:'Přílohy'
 });
 Object.assign(T.en,{
-  syncSection:'Sync', syncSetup:'Set up sync', syncSetupSub:'Phone and computer exchange changes once a day, encrypted, through your private GitHub repository.',
+  syncSection:'Sync', syncSetup:'Set up sync', syncSetupSub:'Phone and computer exchange changes, encrypted, through your private GitHub repository: shortly after each change and every few minutes while the app is open.',
   syncBroken:'The sync key can’t be read on this device. Set up sync again (your notes stay).',
   syncNow:'Sync now', syncLast:d=>`Last sync: ${d}`, syncNever:'Not synced yet', syncing:'Syncing…',
   syncFiles:(i,n)=>`Downloading files ${i} / ${n}…`, syncUp:(i,n)=>`Uploading files ${i} / ${n}…`, syncDone:'Synced',
@@ -268,7 +271,7 @@ Object.assign(T.en,{
   fileNotYet:'This file hasn’t been downloaded yet. Sync again later.', aboutSync:'Sync is on: changes are stored encrypted in your private GitHub repository.'
 });
 Object.assign(T.cs,{
-  syncSection:'Synchronizace', syncSetup:'Nastavit synchronizaci', syncSetupSub:'Telefon a počítač si jednou denně šifrovaně vymění změny přes tvůj soukromý repozitář na GitHubu.',
+  syncSection:'Synchronizace', syncSetup:'Nastavit synchronizaci', syncSetupSub:'Telefon a počítač si šifrovaně vymění změny přes tvůj soukromý repozitář na GitHubu: chvíli po každé změně a v otevřené aplikaci každých pár minut.',
   syncBroken:'Klíč synchronizace nejde v tomto zařízení přečíst. Nastav synchronizaci znovu (poznámky zůstanou).',
   syncNow:'Synchronizovat teď', syncLast:d=>`Naposledy: ${d}`, syncNever:'Zatím nesynchronizováno', syncing:'Synchronizuji…',
   syncFiles:(i,n)=>`Stahuji soubory ${i} / ${n}…`, syncUp:(i,n)=>`Nahrávám soubory ${i} / ${n}…`, syncDone:'Synchronizováno',
@@ -308,6 +311,16 @@ Object.assign(T.cs,{
   qrDenied:'MemoChat nemá povolený fotoaparát. Povol ho v nastavení aplikace, nebo opiš 8 slov.',
   qrWrong:'Tohle není párovací kód MemoChatu.'
 });
+Object.assign(T.en,{
+  tasks:'Tasks', next7:'Next 7 days', noDate:'No date', byDate:'By date', byPri:'By priority', doneOne:'Marked as done',
+  noTasks:'Nothing to do', noTasksSub:'Here you see unfinished checklists, notes with a date and notes of higher priority from all threads.'
+});
+Object.assign(T.en,{ byTime:'By time', reply:'Reply', replyTo:'Reply to', replyGone:'The original note was deleted' });
+Object.assign(T.cs,{ byTime:'Podle času', reply:'Odpovědět', replyTo:'Odpověď na', replyGone:'Původní poznámka byla smazána' });
+Object.assign(T.cs,{
+  tasks:'Úkoly', next7:'Příštích 7 dní', noDate:'Bez termínu', byDate:'Podle termínu', byPri:'Podle důležitosti', doneOne:'Označeno jako hotové',
+  noTasks:'Nic nečeká', noTasksSub:'Tady uvidíš nehotové seznamy, poznámky s termínem a poznámky s vyšší důležitostí ze všech vláken.'
+});
 function t(k,...a){ const L=T[S.settings.lang]||T.en; const v=L[k]!==undefined?L[k]:T.en[k]; return typeof v==='function'?v(...a):v; }
 function loc(){ return S.settings.lang==='cs'?'cs-CZ':'en-GB'; }
 
@@ -326,7 +339,6 @@ const EMOJIS = ['📥','💼','🏠','🛒','💡','📝','📌','📚','🎓','
   '🎵','🎸','🎬','📷','🎨','📖','🧩','💻','📱','🖥️','🔧','🛠️','🔑','🔒','💬','📞','✉️','🎁','🎉','🙏','🌍','🇨🇿',
   '🇬🇧','🇰🇷','🏴󠁧󠁢󠁷󠁬󠁳󠁿','🇩🇪','🇫🇷','🇪🇸','🇮🇹','🇯🇵','🤖','✳️','🧭','🧠'];
 const DEF_LIGHT = '<svg width="62%" height="62%" viewBox="-12 -12 24 24" fill="none" stroke="#2B4C7E" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M0 0c0-4 4-6 7-4s2 7-2 7"/><path transform="rotate(120)" d="M0 0c0-4 4-6 7-4s2 7-2 7"/><path transform="rotate(240)" d="M0 0c0-4 4-6 7-4s2 7-2 7"/></svg>';
-const DEF_DARK = '<svg width="52%" height="58%" viewBox="0 0 22 24" fill="none" stroke="#111A2E" stroke-width="1.6" aria-hidden="true"><path d="M8 3h6v2c4 1 6 4 6 8s-3 8-9 8-9-4-9-8 2-7 6-8z"/></svg>';
 const DAY = 86400000;
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-'+Date.now().toString(36)+Math.random().toString(36).slice(2));
 
@@ -355,7 +367,7 @@ function nativeInfo(){ try{ return JSON.parse(NATIVE.info()); }catch(e){ return 
 function b64(u8){ let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(s); }
 const DEFAULT_SETTINGS = {theme:null, lang:'en', lastBackup:null, nudgeSnooze:null, recent:[], welcome:false};
 
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.6.0';
 const DEFAULT_THREADS = [
   ['Inbox','📥','gray',{system:'inbox',pinned:true}],['Work','💼','blue'],['Home','🏠','purple'],['Shopping','🛒','pink'],['Ideas','💡','indigo'],
   ['Korean','🇰🇷','teal'],['Welsh','🏴󠁧󠁢󠁷󠁬󠁳󠁿','teal'],['Claude','✳️','slate'],['Copilot','🧭','slate'],['AI general','🤖','slate'],
@@ -414,15 +426,18 @@ function sanitizeData(data){
         id:a.id, name:cleanName(a.name)||'file', type:cleanType(a.type), size:num(a.size,0), thumb:(typeof a.thumb==='string' && RE_PHOTO.test(a.thumb)) ? a.thumb : null }))
     };
     if(o.updatedAt===null) delete o.updatedAt;
+    if(typeof n.replyTo==='string' && RE_ID.test(n.replyTo)) o.replyTo = n.replyTo;
     if(num(n.remindFired)!==null) o.remindFired = n.remindFired;
     if(n.cal && typeof n.cal==='object' && RE_DATE.test(n.cal.date||'')) o.cal = {date:n.cal.date, time:RE_TIME.test(n.cal.time||'')?n.cal.time:null};
     return o;
   }).filter(n=>tids.has(n.threadId));
   const s = (data.settings && typeof data.settings==='object') ? data.settings : {};
   const settings = {
-    theme:['light','dark'].includes(s.theme)?s.theme:null, lang:s.lang==='cs'?'cs':'en', lastBackup:num(s.lastBackup), nudgeSnooze:num(s.nudgeSnooze),
+    theme:['light','dark','time'].includes(s.theme)?s.theme:null, lang:s.lang==='cs'?'cs':'en', lastBackup:num(s.lastBackup), nudgeSnooze:num(s.nudgeSnooze),
     recent:(Array.isArray(s.recent)?s.recent:[]).filter(x=>tids.has(x)).slice(0,5), kbOffset:num(s.kbOffset), kbHint:!!s.kbHint, welcome:!!s.welcome,
-    backupEncrypt:!!s.backupEncrypt, backupSnooze:num(s.backupSnooze), notifAsked:!!s.notifAsked, updCheck:num(s.updCheck)
+    backupEncrypt:!!s.backupEncrypt, backupSnooze:num(s.backupSnooze), notifAsked:!!s.notifAsked, updCheck:num(s.updCheck),
+    tasksSort:s.tasksSort==='pri'?'pri':'date',
+    themeOv:(s.themeOv && ['light','dark'].includes(s.themeOv.v) && num(s.themeOv.until)!==null) ? {v:s.themeOv.v, until:s.themeOv.until} : null
   };
   return {threads, notes, settings, tombs:cleanTombs(data.tombs)};
 }
@@ -485,7 +500,7 @@ const Store = {
   }
 };
 let saveTimer=null;
-function persist(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>{ stampChanges(); Store.save(S); nativeAlarms(); },250); }
+function persist(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>{ stampChanges(); Store.save(S); nativeAlarms(); syncSoon(); },250); }
 /* every change to a thread or a note sets its updatedAt (used to merge devices when sync arrives);
    compares a light signature of each item with the one from the last save */
 const lastSig = new Map(); let sigReady=false;
@@ -572,18 +587,31 @@ function searchText(n){ return noteText(n)+' '+(n.attachments||[]).map(a=>a.name
 function colorOf(c){ if(!c) return null; return COLORS[c] || (/^#[0-9a-f]{6}$/i.test(c)?c:null); }
 // no colour + no emoji = default look of the theme (gold triskele / porcelain moon jar)
 function avatar(th, cls='lg'){
-  const col = colorOf(th.color), dark = effTheme()==='dark';
-  const bg = col || (dark ? '#EDE7DA' : '#D9B45A');
+  // the same look in both themes (owner's wish, 1.6.0)
+  const col = colorOf(th.color);
+  const bg = col || '#D9B45A';
   let inner;
   const ck = th.emoji && CELTIC_FOR[th.emoji];
-  const ink = col ? '#FFFBF2' : (dark ? '#111A2E' : '#2B4C7E');
+  const ink = col ? '#FFFBF2' : '#2B4C7E';
   if(ck) inner = `<svg class="tic" viewBox="0 0 24 24" fill="none" stroke="${ink}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:${ink}">${CELTIC[ck]}</svg>`;
   else if(th.emoji) inner = esc(th.emoji);
   else if(col) inner = `<span class="ava-letter">${esc((th.name||'?').trim().charAt(0).toUpperCase())}</span>`;
-  else inner = dark ? DEF_DARK : DEF_LIGHT;
+  else inner = DEF_LIGHT;
   return `<div class="avatar ${cls}" style="background:${bg}">${inner}</div>`;
 }
-function effTheme(){ return S.settings.theme || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'); }
+// 'time' = dark from 20:01 to 7:59 (owner's wish). The moon/sun button overrides it until the next switch.
+const DARK_FROM = 20*60+1, DARK_TO = 7*60+59;
+function timeTheme(d=new Date()){ const m=d.getHours()*60+d.getMinutes(); return (m>=DARK_FROM || m<DARK_TO) ? 'dark' : 'light'; }
+function nextThemeSwitch(now=Date.now()){
+  const d=new Date(now), at=(day,mins)=>new Date(d.getFullYear(), d.getMonth(), d.getDate()+day, Math.floor(mins/60), mins%60).getTime();
+  return [at(0,DARK_TO), at(0,DARK_FROM), at(1,DARK_TO)].find(x=>x>now);
+}
+function effTheme(){
+  const th=S.settings.theme;
+  if(th==='light' || th==='dark') return th;
+  if(th==='time'){ const o=S.settings.themeOv; return o && Date.now()<o.until ? o.v : timeTheme(); }
+  return matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+}
 function applyTheme(){ const th=effTheme(); document.documentElement.dataset.theme=th; document.documentElement.lang=S.settings.lang; const m=$('meta[name=theme-color]'); if(m) m.content = th==='dark'?'#223E68':'#2B4C7E';
   if(NATIVE) try{ NATIVE.setBars(th==='dark'?'#223E68':'#2B4C7E', th==='dark'?'#111A2E':'#EFE5CC', th==='dark'); }catch(e){} }
 function themeBtn(){ const dark=effTheme()==='dark'; return `<button class="ib" data-act="toggle-theme" title="${dark?t('light'):t('dark')}" aria-label="${dark?t('light'):t('dark')}">${dark?I.sun:I.moon}</button>`; }
@@ -789,7 +817,7 @@ function renderSettings(){
   L.innerHTML = simpleHeader(t('settings')) + `<div class="scroll set">
     <div class="section-h">${t('thisDevice')}</div>
     <div class="grp"><div class="it"><span class="ic">${I.globe}</span><div class="grow">${t('language')}</div><div class="seg"><button class="${s.lang==='en'?'on':''}" data-act="lang" data-v="en">English</button><button class="${s.lang==='cs'?'on':''}" data-act="lang" data-v="cs">Čeština</button></div></div>
-    <div class="it"><span class="ic">${I.sun}</span><div class="grow">${t('theme')}</div><div class="seg"><button class="${!s.theme?'on':''}" data-act="theme" data-v="">${t('system')}</button><button class="${s.theme==='light'?'on':''}" data-act="theme" data-v="light">${t('light')}</button><button class="${s.theme==='dark'?'on':''}" data-act="theme" data-v="dark">${t('dark')}</button></div></div></div>
+    <div class="it wrapseg"><span class="ic">${I.sun}</span><div class="grow">${t('theme')}</div><div class="seg"><button class="${!s.theme?'on':''}" data-act="theme" data-v="">${t('system')}</button><button class="${s.theme==='light'?'on':''}" data-act="theme" data-v="light">${t('light')}</button><button class="${s.theme==='dark'?'on':''}" data-act="theme" data-v="dark">${t('dark')}</button><button class="${s.theme==='time'?'on':''}" data-act="theme" data-v="time">${t('byTime')}</button></div></div></div>
     <div class="section-h">${t('backup')} · ${t('lastBackup', s.lastBackup?fullWhen(s.lastBackup):t('never'))}</div>
     <div class="grp">
       <button class="it" data-act="backup"><span class="ic">${I.download}</span><div class="grow">${t('backupNow')}<div class="small">${t('backupSub')}</div></div></button>
@@ -910,6 +938,7 @@ function noteHTML(n, dropcap){
   if(n.editedAt) meta.push(`<span class="edited" data-act="history">${t('edited')}</span>`);
   if(n.due) meta.unshift(dueChip(n));
   meta.push(n.done ? `${I.check}<span>${t('done')} · ${fmtTime(n.doneAt||n.createdAt)}</span>` : `<span title="${fullWhen(n.createdAt)}">${fmtTime(n.createdAt)}</span>`);
+  if(n.replyTo) body = quoteHTML(n) + body;
   return `<div class="nwrap"><div class="swipebg">${I.checkL}<span>${n.done?t('markUndone'):t('done')}</span></div>
     <article class="note p${n.priority} ${n.done?'done':''} ${sel?'sel':''}" data-nid="${n.id}">
       ${n.pinned && !ui.selecting ? `<span class="orn">${orn(14)}</span>` : ''}
@@ -930,6 +959,7 @@ function renderComposer(fresh){
     slot.innerHTML = `<div class="composer"><div class="composer-in">
       <div class="kbgrip" id="kbGrip" title="Drag to fit above the keyboard"><span></span></div>
       <div class="editbar hidden" id="cEditBar"></div>
+      <div class="editbar replybar hidden" id="cReplyBar"></div>
       <div class="ppreview hidden" id="cPhoto"></div>
       <div class="prirow" id="cPri"></div>
       <input id="cTitle" class="ltinput hidden" maxlength="120">
@@ -955,6 +985,9 @@ function renderComposer(fresh){
   const eb=$('#cEditBar');
   if(c.editing){ const n=note(c.editing); eb.classList.remove('hidden'); eb.innerHTML = `${I.edit}<span class="grow"><b>${t('editing')}</b> · ${esc(preview(n)||'')}</span><button class="linkbtn" data-act="cancel-edit">${t('cancel')}</button>`; }
   else eb.classList.add('hidden');
+  const rb=$('#cReplyBar'), ro=!c.editing && c.replyTo && note(c.replyTo);
+  if(ro){ rb.classList.remove('hidden'); rb.innerHTML = `${I.reply}<span class="grow"><b>${t('replyTo')}</b> · ${esc(noteSnippet(ro)||'')}</span><button class="ib" data-act="cancel-reply" aria-label="${t('cancel')}" title="${t('cancel')}">${I.xS}</button>`; }
+  else { rb.classList.add('hidden'); rb.innerHTML=''; }
   const pp=$('#cPhoto');
   if(c.photo || c.atts.length){
     pp.classList.remove('hidden');
@@ -1000,7 +1033,8 @@ document.addEventListener('focusin', e=>{
   }, 300);
 });
 document.addEventListener('focusout', ()=>{
-  setTimeout(()=>{ if(!isComposerFocused() && !kbDrag){ clearTimeout(kbTimer); $('#app').classList.remove('kb-lift'); const box=$('#msgs'); if(box) box.scrollTop=box.scrollHeight; } }, 150);
+  // (not right after jumping to a note, e.g. from a quote or a search result)
+  setTimeout(()=>{ if(!isComposerFocused() && !kbDrag){ clearTimeout(kbTimer); $('#app').classList.remove('kb-lift'); const box=$('#msgs'); if(box && Date.now()-lastFlashAt>1500) box.scrollTop=box.scrollHeight; } }, 150);
 });
 /* drag the grip to match the real keyboard height; remembered */
 let kbDrag=null;
@@ -1018,7 +1052,7 @@ document.addEventListener('pointermove', e=>{
 document.addEventListener('pointerup', e=>{ if(kbDrag && e.pointerId===kbDrag.pid){ kbDrag=null; persist(); const i=$('#cInput'); if(i && !isComposerFocused()) i.focus(); } }, true);
 function updateSend(){ const b=$('#cSend'), i=$('#cInput'); if(!b||!i) return; b.disabled = !!ui.sending || (!i.value.trim() && !ui.comp.photo && !ui.comp.atts.length && !($('#cTitle')&&$('#cTitle').value.trim())); }
 function resetComposer(){
-  ui.comp = {pri:1, mode:'text', photo:null, atts:[], editing:null, due:null};
+  ui.comp = {pri:1, mode:'text', photo:null, atts:[], editing:null, due:null, replyTo:null};
   const i=$('#cInput'); if(i){ i.value=''; autoGrow(i); } const tl=$('#cTitle'); if(tl) tl.value='';
 }
 
@@ -1068,6 +1102,7 @@ async function sendNoteNow(){
 // (saving large files takes a moment), the note still goes to its own thread and the new composer is left alone
 function addNote(o, c=ui.comp){
   const n = Object.assign({id:uid(), threadId:ui.threadId, type:'text', text:'', title:'', items:[], photo:c.photo, attachments:[], priority:c.pri, due:c.due||null, done:false, doneAt:null, pinned:false, pinnedAt:null, createdAt:Date.now(), editedAt:null, history:[], deletedAt:null}, o);
+  if(c.replyTo && !c.editing && note(c.replyTo)) n.replyTo = c.replyTo;
   S.notes.push(n); bumpActivity(n.threadId);
   const same = ui.comp===c;
   if(same) resetComposer();
@@ -1087,6 +1122,31 @@ function startEdit(id){
   autoGrow(inp); updateSend(); inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
 }
 function cancelEdit(){ resetComposer(); renderComposer(false); }
+function startReply(id){
+  const n=note(id); if(!n) return;
+  exitSelect(true);
+  if(ui.comp.editing){ resetComposer(); }
+  ui.comp.replyTo=id;
+  renderComposer(false);
+  const inp=$('#cInput'); if(inp) inp.focus();
+}
+function cancelReply(){ ui.comp.replyTo=null; renderComposer(false); }
+// the quoted note above a reply; tap = jump to it
+function quoteHTML(n){
+  const o=note(n.replyTo), th=o && thread(o.threadId);
+  if(!o || o.deletedAt || !th || th.deletedAt) return `<div class="rq gone">${I.replyS}<span>${t('replyGone')}</span></div>`;
+  const other = o.threadId!==n.threadId ? `${esc(((th.emoji||'')+' '+th.name).trim())} · ` : '';
+  return `<div class="rq" data-act="goto-reply" role="button" tabindex="0"><span class="rqbar" style="background:var(--p${o.priority})"></span><div class="rqin"><div class="rqh">${I.replyS}${other}${esc(dayLabel(o.createdAt)+' '+fmtTime(o.createdAt))}</div><div class="rqt">${esc(noteSnippet(o)||t('checklist'))}</div></div></div>`;
+}
+function gotoReply(id){
+  const n=note(id), o=n && note(n.replyTo), th=o && thread(o.threadId);
+  if(!o || o.deletedAt || !th || th.deletedAt) return snack(t('replyGone'));
+  let changed=false;
+  if(o.done && th.hideDone){ th.hideDone=false; changed=true; }
+  if(ui.filter && ui.filter.size && !ui.filter.has(o.priority)){ ui.filter=null; changed=true; }
+  if(o.threadId===ui.threadId){ if(changed) render(); flash([o.id]); }
+  else openThread(o.threadId, {flash:[o.id]});
+}
 function setDone(ids, val){
   ids.forEach(id=>{ const n=note(id); if(n){ n.done = val; n.doneAt = val?Date.now():null; } });
   commit();
@@ -1169,7 +1229,9 @@ function openThread(id, opts={}){
   if(isFine() && !thread(id).archived && !(opts.flash&&opts.flash.length)) setTimeout(()=>{ const i=$('#cInput'); i&&i.focus(); },50);
 }
 function closeThread(){ ui.showThread=false; exitSelect(true); resetComposer(); if(!isWide()){ ui.threadId=null; } render(); }
+let lastFlashAt=0;
 function flash(ids){
+  lastFlashAt=Date.now();
   requestAnimationFrame(()=>{
     let first=null;
     ids.forEach(id=>{ const el=R.querySelector(`.note[data-nid="${id}"]`); if(el){ if(!first) first=el; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'),1700); } });
@@ -1279,6 +1341,7 @@ function noteMenu(id){
   const items=[
     {icon:I.copy,label:t('copyText'),fn:async()=>snack(await copyText(noteText(n))?t('copied'):t('copyFail'))},
   ];
+  if(!ro) items.unshift({icon:I.reply,label:t('reply'),fn:()=>startReply(id)});
   if(!ro) items.push(
     {icon:I.edit,label:t('edit'),fn:()=>startEdit(id)},
     {icon:I.move,label:t('moveTo'),fn:()=>pickThread([id],false)});
@@ -1317,7 +1380,7 @@ function threadMenu(id, fromList){
   if(!fromList){
     items.push({icon:th.hideDone?I.eye:I.eyeOff,label:th.hideDone?t('showDone'):t('hideDone'),fn:()=>{ th.hideDone=!th.hideDone; commit(); }});
     items.push({icon:I.filter,label:t('filterPri'),check:!!ui.filter,fn:()=>{ ui.filter = ui.filter?null:new Set(); render(); }});
-    items.push({icon:I.cal,label:t('dates'),fn:()=>goLeft('agenda')});
+    items.push({icon:I.cal,label:t('dates'),fn:()=>{ ui.agTab='dates'; goLeft('agenda'); }});
     if(!th.archived) items.push({icon:I.select,label:t('selectNotes'),fn:()=>enterSelect(null)});
   }
   if(!th.archived){
@@ -1334,7 +1397,8 @@ function mainMenu(){
   const nArch = S.threads.filter(x=>x.archived&&!x.deletedAt).length, nTrash=S.notes.filter(n=>n.deletedAt).length;
   sheet('MemoChat', [
     {icon:I.newThread,label:t('newThread'),fn:createThreadAndOpen},
-    {icon:I.cal,label:t('dates'),fn:()=>goLeft('agenda')},
+    {icon:I.cal,label:t('dates'),fn:()=>{ ui.agTab='dates'; goLeft('agenda'); }},
+    {icon:I.select,label:t('tasks'),right:(()=>{ const k=taskNotes().length; return k?`<span style="color:var(--muted);font-size:14px">${k}</span>`:''; })(),fn:()=>{ ui.agTab='tasks'; goLeft('agenda'); }},
     {icon:I.archive,label:t('archived'),right:nArch?`<span style="color:var(--muted);font-size:14px">${nArch}</span>`:'',fn:()=>goLeft('archive')},
     {icon:I.trash,label:t('trash'),right:nTrash?`<span style="color:var(--muted);font-size:14px">${nTrash}</span>`:'',fn:()=>goLeft('trash')},
     {icon:I.settings,label:t('settings'),fn:()=>goLeft('settings')},
@@ -1480,7 +1544,7 @@ function agendaData(){
   const soon=rest.filter(n=>dueDiff(n.due)<30), later=rest.filter(n=>dueDiff(n.due)>=30);
   return {overdue, earlier, soon, later};
 }
-function renderAgenda(){
+function agendaDatesHTML(){
   const {overdue, earlier, soon, later} = agendaData();
   const open = ui.agendaOpen || (ui.agendaOpen=new Set());
   let h='';
@@ -1498,9 +1562,66 @@ function renderAgenda(){
   }
   if(earlier.length){ h+=`<div class="agh">${t('earlierDone')}</div>`+earlier.slice(-20).map(agendaRow).join(''); }
   if(!h) h=`<div class="empty">${art('table')}<div class="etitle">${t('noDates')}</div>${t('noDatesSub')}</div>`;
-  const sc = L.querySelector('#agScroll'); const top = sc && L.dataset.view==='agenda' ? sc.scrollTop : 0;
-  L.innerHTML = simpleHeader(t('dates'), `<button class="ib" data-act="ag-copy" title="${t('copyList')}" aria-label="${t('copyList')}">${I.copy}</button><button class="ib" data-act="ag-done" title="${ui.agendaDone?t('hideDoneD'):t('showDoneD')}" aria-label="${ui.agendaDone?t('hideDoneD'):t('showDoneD')}">${ui.agendaDone?I.eyeOff:I.eye}</button>`) + `<div class="scroll" id="agScroll" style="padding-bottom:30px">${h}</div>`;
-  L.dataset.view='agenda'; const ns=$('#agScroll'); if(ns) ns.scrollTop=top;
+  return h;
+}
+/* ---------- tasks: open lists, dated notes and important notes from all threads ---------- */
+function isTask(n){ return !n.done && !n.deletedAt && (n.type==='list' || !!n.due || n.priority>=2); }
+function taskNotes(){ return S.notes.filter(n=>{ const th=thread(n.threadId); return th && !th.deletedAt && !th.archived && isTask(n); }); }
+function tasksSort(){ return S.settings.tasksSort==='pri' ? 'pri' : 'date'; }
+function taskGroups(){
+  const ns=taskNotes();
+  const byDue=(a,b)=>dueSort(a.due)-dueSort(b.due) || b.priority-a.priority || a.createdAt-b.createdAt;
+  const byPri=(a,b)=>b.priority-a.priority || b.createdAt-a.createdAt;
+  if(tasksSort()==='pri'){
+    return [3,2,1,0].map(p=>{ const g=ns.filter(n=>n.priority===p);
+      return {key:'p'+p, title:t('pri')[p], dot:p, notes:g.filter(n=>n.due).sort(byDue).concat(g.filter(n=>!n.due).sort((a,b)=>b.createdAt-a.createdAt))}; }).filter(g=>g.notes.length);
+  }
+  const dated=ns.filter(n=>n.due).sort(byDue);
+  const over=dated.filter(n=>isOverdue(n)), rest=dated.filter(n=>!isOverdue(n));
+  return [
+    {key:'over', title:t('overdue'), notes:over},
+    {key:'today', title:t('today2'), notes:rest.filter(n=>dueDiff(n.due)<=0)},
+    {key:'week', title:t('next7'), notes:rest.filter(n=>dueDiff(n.due)>=1 && dueDiff(n.due)<=7)},
+    {key:'later', title:t('later'), notes:rest.filter(n=>dueDiff(n.due)>7)},
+    {key:'none', title:t('noDate'), notes:ns.filter(n=>!n.due).sort(byPri)}
+  ].filter(g=>g.notes.length);
+}
+function taskSub(n){
+  const th=thread(n.threadId), bits=[esc(((th.emoji||'')+' '+th.name).trim())];
+  if(n.type==='list' && n.items.length) bits.push(`${I.listS}${n.items.filter(i=>i.done).length}/${n.items.length}`);
+  if(n.due) bits.push(`<span class="${isOverdue(n)?'tover':''}">${n.due.time?I.clockS:I.calS}${esc(dueLabel(n.due))}</span>`);
+  return bits.join('<span class="tsep">·</span>');
+}
+function taskRow(n){
+  return `<div class="arow trk" data-act="a-open" data-nid="${n.id}">
+    <span class="stripe" style="background:var(--p${n.priority})"></span>
+    <div class="amain"><div class="atext">${esc(noteSnippet(n)||t('checklist'))}</div><div class="ath tsub">${taskSub(n)}</div></div>
+    <button class="acheck" data-act="tk-check" data-nid="${n.id}" aria-label="${t('markDone')}" title="${t('markDone')}"></button></div>`;
+}
+function tasksHTML(){
+  const so=tasksSort(), gs=taskGroups();
+  let h=`<div class="tkbar"><div class="seg"><button class="${so==='date'?'on':''}" data-act="tk-sort" data-v="date">${t('byDate')}</button><button class="${so==='pri'?'on':''}" data-act="tk-sort" data-v="pri">${t('byPri')}</button></div></div>`;
+  if(!gs.length) return h+`<div class="empty">${art('table')}<div class="etitle">${t('noTasks')}</div>${t('noTasksSub')}</div>`;
+  gs.forEach(g=>{ h+=`<div class="agh">${g.dot!==undefined?`<span class="pdot" style="background:var(--p${g.dot})"></span>`:''}${esc(g.title)} <small>· ${g.notes.length}</small></div>`+g.notes.map(taskRow).join(''); });
+  return h;
+}
+async function copyTasks(){
+  let out=t('tasks')+'\n';
+  taskGroups().forEach(g=>{ out+=`\n${g.title}:\n`+g.notes.map(n=>{ const th=thread(n.threadId); return `- ${noteSnippet(n)||t('checklist')} (${th.name})${n.due?' · '+dueLabel(n.due):''}`; }).join('\n')+'\n'; });
+  snack(await copyText(out.trim())?t('copied'):t('copyFail'));
+}
+function renderAgenda(){
+  const tab = ui.agTab==='tasks' ? 'tasks' : 'dates';
+  const h = tab==='tasks' ? tasksHTML() : agendaDatesHTML();
+  const sc = L.querySelector('#agScroll'); const top = sc && L.dataset.view==='agenda-'+tab ? sc.scrollTop : 0;
+  const tools = tab==='tasks'
+    ? `<button class="ib" data-act="ag-copy" title="${t('copyList')}" aria-label="${t('copyList')}">${I.copy}</button>`
+    : `<button class="ib" data-act="ag-copy" title="${t('copyList')}" aria-label="${t('copyList')}">${I.copy}</button><button class="ib" data-act="ag-done" title="${ui.agendaDone?t('hideDoneD'):t('showDoneD')}" aria-label="${ui.agendaDone?t('hideDoneD'):t('showDoneD')}">${ui.agendaDone?I.eyeOff:I.eye}</button>`;
+  const nT = taskNotes().length;
+  L.innerHTML = simpleHeader(tab==='tasks'?t('tasks'):t('dates'), tools)
+    + `<div class="agtabs" role="tablist"><button role="tab" aria-selected="${tab==='dates'}" class="${tab==='dates'?'on':''}" data-act="ag-tab" data-v="dates">${I.calS}${t('dates')}</button><button role="tab" aria-selected="${tab==='tasks'}" class="${tab==='tasks'?'on':''}" data-act="ag-tab" data-v="tasks">${I.checkS}${t('tasks')}${nT?` <small>${nT}</small>`:''}</button></div>`
+    + `<div class="scroll" id="agScroll" style="padding-bottom:30px">${h}</div>`;
+  L.dataset.view='agenda-'+tab; const ns=$('#agScroll'); if(ns) ns.scrollTop=top;
 }
 async function copyAgenda(){
   const {overdue, soon} = agendaData(); const nm = n=>{ const th=thread(n.threadId); return ` (${th.name})`; };
@@ -1884,6 +2005,7 @@ function exportMarkdown(){
       if(n.type==='list'){ md += `${head} **${n.title||t('checklist')}**\n` + n.items.map(i=>`  - [${i.done?'x':' '}] ${i.text}`).join('\n') + '\n'; }
       else { md += `${head} ${(n.photo?'[📷] ':'')+(n.text||'').split('\n').join('\n  ')}\n`; }
       (n.attachments||[]).forEach(a=>{ md += `  - 📎 ${a.name} (${fmtSize(a.size)})\n`; });
+      { const o=n.replyTo && note(n.replyTo); if(o && !o.deletedAt) md += `  - ↪ ${noteSnippet(o)}\n`; }
     });
     md+='\n';
   });
@@ -1904,7 +2026,10 @@ document.addEventListener('click', async e=>{
     const act=a.dataset.act;
     switch(act){
       case 'back': return goBack();
-      case 'toggle-theme': S.settings.theme = effTheme()==='dark'?'light':'dark'; return commit();
+      case 'toggle-theme': { const v = effTheme()==='dark'?'light':'dark';
+        if(S.settings.theme==='time') S.settings.themeOv = v===timeTheme() ? null : {v, until:nextThemeSwitch()};
+        else S.settings.theme = v;
+        return commit(); }
       case 'main-menu': return mainMenu();
       case 'new-thread': return createThreadAndOpen();
       case 'open-search': return openSearch(null);
@@ -1917,7 +2042,7 @@ document.addEventListener('click', async e=>{
       case 'export-md': return exportMarkdown();
       case 'welcome-x': S.settings.welcome=false; return commit();
       case 'lang': S.settings.lang=a.dataset.v; shownThread=null; return commit();
-      case 'theme': S.settings.theme=a.dataset.v||null; return commit();
+      case 'theme': S.settings.theme=a.dataset.v||null; S.settings.themeOv=null; return commit();
       case 's-scope': ui.search.scope=null; ui.search.from=null; return renderSearch();
       case 's-pri': { const p=+a.dataset.p, s=ui.search.pri; s.has(p)?s.delete(p):s.add(p); return renderSearch(); }
       case 's-done': ui.search.done=!ui.search.done; return renderSearch();
@@ -1938,8 +2063,12 @@ document.addEventListener('click', async e=>{
       case 'comp-due': if(e.target.closest('[data-act="comp-due-x"]')) return; return dueMenu('comp');
       case 'comp-due-x': ui.comp.due=null; return renderComposer(false);
       case 'agenda': return goLeft('agenda');
+      case 'tasks': ui.agTab='tasks'; return goLeft('agenda');
       case 'ag-done': ui.agendaDone=!ui.agendaDone; return renderAgenda();
-      case 'ag-copy': return copyAgenda();
+      case 'ag-copy': return ui.agTab==='tasks' ? copyTasks() : copyAgenda();
+      case 'ag-tab': ui.agTab=a.dataset.v==='tasks'?'tasks':'dates'; return renderAgenda();
+      case 'tk-sort': S.settings.tasksSort=a.dataset.v==='pri'?'pri':'date'; persist(); return renderAgenda();
+      case 'tk-check': { const n=note(a.dataset.nid); if(!n) return; setDone([n.id], true); snack(t('doneOne'), t('undo'), ()=>setDone([n.id], false)); return; }
       case 'cal-fix': { const n=note(a.dataset.nid); if(n) calDialog(n,'change'); return; }
       case 'a-toggle': { const id=a.dataset.nid; const o=ui.agendaOpen||(ui.agendaOpen=new Set()); o.has(id)?o.delete(id):o.add(id); return renderAgenda(); }
       case 'a-check': { const n=note(a.dataset.nid); if(n){ setDone([n.id], !n.done); } return; }
@@ -1949,6 +2078,7 @@ document.addEventListener('click', async e=>{
       case 'comp-att-x': ui.comp.atts.splice(+a.dataset.ai,1); return renderComposer(false);
       case 'send': return sendNote();
       case 'cancel-edit': return cancelEdit();
+      case 'cancel-reply': return cancelReply();
       case 'sel-exit': return exitSelect();
       case 'sel-move': return pickThread([...ui.sel], false);
       case 'sel-copy': return pickThread([...ui.sel], true);
@@ -1974,7 +2104,7 @@ document.addEventListener('pointerdown', e=>{
   g = {el, x0:e.clientX, y0:e.clientY, dx:0, swiping:false, moved:false, pid:e.pointerId, isNote:el.classList.contains('note')};
   g.timer = setTimeout(()=>{ if(!g || g.moved) return; suppressClick=true; lpPending=true; if(navigator.vibrate) try{navigator.vibrate(12);}catch(_){}
     const gg=g; g=null;
-    if(gg.isNote){ const id=gg.el.dataset.nid; if(ui.selecting) toggleSel(id); else openMenuOnce(()=>noteMenu(id)); }
+    if(gg.isNote){ const id=gg.el.dataset.nid; if(ui.selecting) toggleSel(id); else enterSelect(id); }
     else if(ui.left!=='search') openMenuOnce(()=>threadMenu(gg.el.dataset.tid,true));
   }, 480);
 });
@@ -2015,6 +2145,9 @@ R.addEventListener('click', e=>{
   { const va=e.target.closest('[data-act="view-att"]'); if(va) return openAtt(id, va.dataset.aid); }
   if(e.target.closest('[data-act="history"]')) return showHistory(id);
   if(e.target.closest('[data-act="due"]') && !thread(note(id).threadId).archived) return dueMenu(id);
+  if(e.target.closest('[data-act="goto-reply"]')) return gotoReply(id);
+  // touch: a tap on the note opens its menu (holding it starts selecting); mouse: right-click / double-click
+  if(!isFine()) openMenuOnce(()=>noteMenu(id));
 }, true);
 R.addEventListener('dblclick', e=>{ const n=e.target.closest('.note[data-nid]'); if(!n || ui.selecting || !isFine() || e.target.closest('.litem')) return; const th=thread(ui.threadId); if(th && !th.archived) startEdit(n.dataset.nid); });
 L.addEventListener('click', e=>{ if(suppressClick && e.target.closest('.trow')){ suppressClick=false; e.stopPropagation(); } }, true);
@@ -2029,6 +2162,11 @@ document.addEventListener('keydown', e=>{
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openSearch(null); }
 });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(!S.settings.theme) render(); });
+// 'by time': switch at 20:01 / 7:59 even while the app stays open
+function themeTick(){ if(S.settings.theme!=='time') return; const o=S.settings.themeOv; if(o && Date.now()>=o.until){ S.settings.themeOv=null; persist(); }
+  if(document.documentElement.dataset.theme!==effTheme()) render(); }
+setInterval(themeTick, 20000);
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') themeTick(); });
 let wasWide=isWide();
 window.addEventListener('resize',()=>{ const w=isWide(); if(w!==wasWide){ wasWide=w; if(w && ui.threadId) ui.showThread=true; render(); } });
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'){ clearTimeout(saveTimer); Store.save(S); } });
@@ -2051,7 +2189,9 @@ const SYNC_WORDS = 'abandon ability able about above absent absorb abstract absu
 const SYNC_API = 'https://api.github.com';
 const SYNC_META = 'memochat-sync.json';
 const SYNC_PART = 8*1024*1024;            // attachment piece size (GitHub accepts blobs up to 100 MB)
-const SYNC_EVERY = DAY;                   // automatic sync at most once a day
+const SYNC_SOON  = 30000;                 // upload this long after the last change (while the app is open)
+const SYNC_POLL  = 5*60000;               // look for other devices' changes this often while the app is open
+const SYNC_AGAIN = 60000;                 // coming back to the app syncs if the last try is at least this old
 const SYNC_RETRY = 30*60000;              // after a failed attempt, wait before trying again automatically
 const SYNC_STALE = 300*DAY;               // ignore devices that have not synced for this long
 const RE_REPO = /^[A-Za-z0-9-]{1,39}\/[A-Za-z0-9._-]{1,100}$/;
@@ -2404,24 +2544,40 @@ function syncErrText(k){
   if(k.startsWith('http')) return t('syncErrHttp', k.slice(5)||'?');
   return t('syncErrOther');
 }
-// automatic: when the app opens or comes back, at most once a day
-function syncMaybe(){
+// automatic: when the app opens or comes back, every SYNC_POLL while it is open, and SYNC_SOON after a change.
+// After a failure: wait SYNC_POLL (offline, server) or SYNC_RETRY (token or repository problem, which shows a message).
+function syncHardErr(){ return ['token','notfound','forbidden','public'].includes(syncCfg && syncCfg.lastError); }
+function syncMaybe(gap=SYNC_AGAIN){
   if(!syncOn() || syncBusy || navigator.onLine===false) return;
   const now=Date.now(), bg=syncBgInfo();
-  if(bg && bg.busy){ setTimeout(syncMaybe, 5000); return; }
+  if(bg && bg.busy){ setTimeout(()=>syncMaybe(gap), 5000); return; }
   // the background job found changes from another device that aren't merged yet
   if(bg && num(bg.newsAt,0) > (syncCfg.lastSync||0) && now-(syncCfg.lastAttempt||0) >= 60000){ syncNow(false); return; }
-  if(now-(syncCfg.lastSync||0) < SYNC_EVERY || now-(syncCfg.lastAttempt||0) < SYNC_RETRY) return;
+  const wait = syncHardErr() ? SYNC_RETRY : syncCfg.lastError ? Math.max(gap, SYNC_POLL) : gap;
+  if(now-(syncCfg.lastAttempt||0) < wait) return;
   syncNow(false);
+}
+// called after every saved change; the timer restarts with each change, so a burst of edits is one upload
+let syncSoonT=null;
+function syncSoon(){
+  if(!syncOn()) return;
+  clearTimeout(syncSoonT);
+  syncSoonT=setTimeout(function go(){
+    if(!syncOn() || syncHardErr() || navigator.onLine===false) return;
+    if(document.visibilityState==='hidden' && nativeBg()) return;        // the background job takes it from here
+    if(syncBusy){ syncSoonT=setTimeout(go, 5000); return; }
+    syncNow(false);
+  }, SYNC_SOON);
 }
 async function syncBoot(){
   if(Store.mode!=='idb') return;
   try{ syncCfg=syncCleanCfg(await Store.kvGet('sync')); }catch(e){ syncCfg=null; }
   if(syncCfg){ syncSec=await syncSecretLoad(); if(syncSec){ try{ syncKey=await syncDeriveKey(syncSec.code); }catch(e){ syncKey=null; } } }
   if(ui.left==='settings') renderLeft();
-  setTimeout(syncMaybe, 3000);
-  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') setTimeout(syncMaybe, 1500); else syncHandOver(); });
-  window.addEventListener('online', ()=>setTimeout(syncMaybe, 3000));
+  setTimeout(()=>syncMaybe(), 3000);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') setTimeout(()=>syncMaybe(), 1500); else syncHandOver(); });
+  window.addEventListener('online', ()=>setTimeout(()=>syncMaybe(), 3000));
+  setInterval(()=>{ if(document.visibilityState==='visible') syncMaybe(SYNC_POLL); }, 30000);
 }
 
 /* ---------- setting up, pairing code, disconnecting ---------- */

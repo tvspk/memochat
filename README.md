@@ -9,12 +9,18 @@ Notes as a chat with yourself. An installable, offline-first web app (PWA) for A
 - Back up regularly: ⋮ → Backup & settings → Back up to file. The backup is one ZIP file with notes and attachments, optionally encrypted with a password. Older JSON backups (also from the prototype) can still be restored.
 - Share to MemoChat from other apps (text, links, one photo): Share → MemoChat → choose a thread.
 - Long-press the app icon for shortcuts: Inbox, Work, Search.
+- Tasks: the calendar icon → Tasks shows unfinished checklists, dated notes and higher-priority notes from all threads,
+  by date or by priority.
+- Tap a note for its menu (Reply, Edit, Move…); hold it to select several notes.
+- Appearance can follow the time of day (dark from 20:01 to 7:59).
 
 ## Sync (optional)
 
-Phone and computer can exchange changes once a day (and on "Sync now") through a **private** GitHub
+Phone and computer exchange changes through a **private** GitHub
 repository of your own (e.g. `memochat-sync`), used as an encrypted mailbox:
 
+- While the app is open it uploads about 30 seconds after the last change and looks for the other devices'
+  changes every 5 minutes and whenever you come back to it (also ⋮ → Sync now).
 - Set it up in ⋮ → Backup & settings → Sync with a fine-grained token that can access only that repository
   (Repository permissions → Contents: Read and write). The first device shows an 8-word pairing code;
   enter it on the other device.

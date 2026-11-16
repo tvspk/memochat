@@ -334,6 +334,10 @@ Object.assign(T.cs,{
   restoreAllOk:'Obnoveno všude. Ostatní zařízení to převezmou při své další synchronizaci.',
   restoreAllLater:'Záloha obnovena tady. Na ostatní zařízení dorazí při další úspěšné synchronizaci.'
 });
+Object.assign(T.en,{ syncClock:(m,ahead)=>`This device's clock is ${m} min ${ahead?'ahead':'behind'}`,
+  syncClockSub:'MemoChat corrects it for sync. Better: turn on "Set time automatically" in the system settings.' });
+Object.assign(T.cs,{ syncClock:(m,ahead)=>`Hodiny tohoto zařízení jdou o ${m} min ${ahead?'napřed':'pozadu'}`,
+  syncClockSub:'MemoChat to pro synchronizaci opraví. Lepší je zapnout v systému „Nastavit čas automaticky“.' });
 Object.assign(T.en,{ syncFgL:'While open', syncBgL:'In the background',
   syncFq:{now:'Instant', '1m':'1 min', '5m':'5 min', '15m':'15 min', '1h':'1 h', '6h':'6 h', '1d':'1 day'} });
 Object.assign(T.cs,{ syncFgL:'V otevřené aplikaci', syncBgL:'Na pozadí',
@@ -365,7 +369,7 @@ const DEF_LIGHT = '<svg width="62%" height="62%" viewBox="-12 -12 24 24" fill="n
 const DAY = 86400000;
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-'+Date.now().toString(36)+Math.random().toString(36).slice(2));
 
-let S = {threads:[],notes:[],tombs:{},settings:{}};
+let S = {threads:[],notes:[],tombs:{},settings:{},epoch:null};
 
 /* ---------- Android app (APK): bridge to the native side ----------
    In the APK, window.MemoChatNative is provided by MainActivity.java. In a browser it is absent
@@ -390,7 +394,7 @@ function nativeInfo(){ try{ return JSON.parse(NATIVE.info()); }catch(e){ return 
 function b64(u8){ let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(s); }
 const DEFAULT_SETTINGS = {theme:null, lang:'en', lastBackup:null, nudgeSnooze:null, recent:[], welcome:false};
 
-const APP_VERSION = '1.7.3';
+const APP_VERSION = '1.7.4';
 const DEFAULT_THREADS = [
   ['Inbox','📥','gray',{system:'inbox',pinned:true}],['Work','💼','blue'],['Home','🏠','purple'],['Shopping','🛒','pink'],['Ideas','💡','indigo'],
   ['Korean','🇰🇷','teal'],['Welsh','🏴󠁧󠁢󠁷󠁬󠁳󠁿','teal'],['Claude','✳️','slate'],['Copilot','🧭','slate'],['AI general','🤖','slate'],
@@ -462,8 +466,12 @@ function sanitizeData(data){
     tasksSort:s.tasksSort==='pri'?'pri':'date',
     themeOv:(s.themeOv && ['light','dark'].includes(s.themeOv.v) && num(s.themeOv.until)!==null) ? {v:s.themeOv.v, until:s.themeOv.until} : null
   };
-  return {threads, notes, settings, tombs:cleanTombs(data.tombs)};
+  return {threads, notes, settings, tombs:cleanTombs(data.tombs), epoch:cleanEpoch(data.epoch)};
 }
+/* "restore everywhere" mark (1.7.4): {id, at}. A device that sees a newer mark than its own takes that device's data
+   as a whole and puts its other notes in the Trash – no comparing of times, so a wrong clock can't undo a restore. */
+function cleanEpoch(v){ return v && typeof v==='object' && typeof v.id==='string' && /^[a-z0-9]{6,40}$/.test(v.id) && num(v.at)!==null ? {id:v.id, at:v.at} : null; }
+function epochNewer(a,b){ return !!a && (!b || a.at>b.at || (a.at===b.at && a.id>b.id)); }
 /* tombstones: ids of threads and notes deleted forever → time of deletion; they stop other devices
    from bringing those items back through sync. Kept for TOMB_DAYS. */
 const TOMB_DAYS = 400;
@@ -528,8 +536,10 @@ function persist(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>{ stampCha
    compares a light signature of each item with the one from the last save */
 const lastSig = new Map(); let sigReady=false;
 const sigOf = x => JSON.stringify(x, (k,v)=> (k==='updatedAt'||k==='history'||k==='thumb'||k==='photo'||k==='remindFired') ? undefined : v);
+// this device's time corrected by the difference to GitHub's clock (measured at each upload), if it is over a minute
+function clockNow(){ const k=(syncCfg && num(syncCfg.skew,0)) || 0; return Date.now() - (Math.abs(k)>60000 ? k : 0); }
 function stampChanges(){
-  const now=Date.now(), seen=new Set();
+  const now=clockNow(), seen=new Set();
   for(const x of S.threads.concat(S.notes)){
     const sig=sigOf(x), prev=lastSig.get(x.id);
     if(sigReady && prev!==sig) x.updatedAt=now;
@@ -2056,9 +2066,9 @@ $('#importInput').addEventListener('change', async e=>{
     try{ blob=await b.fileOf(atts[i].id, atts[i].type); }catch(err){ console.warn('backup damaged', err); snack(t('backupDamaged')); return; }
     try{ if(blob) await Store.putFile(atts[i].id, blob); }catch(err){ console.warn('restore file failed', err); snack(t('fileSaveFail')); return; }
   }
-  if(everywhere) restoreEverywhere(clean, S, Date.now());
+  if(everywhere) restoreEverywhere(clean, S, clockNow());
   // tombstones stay (they belong to this device's sync history, backups don't carry them)
-  S = {threads:clean.threads, notes:clean.notes, tombs:S.tombs||{}, settings:Object.assign({}, DEFAULT_SETTINGS, clean.settings, {lang:S.settings.lang, theme:S.settings.theme, welcome:false})};
+  S = {threads:clean.threads, notes:clean.notes, tombs:S.tombs||{}, epoch: everywhere ? {id:uid().toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,24)||String(Date.now()), at:clockNow()} : (S.epoch||null), settings:Object.assign({}, DEFAULT_SETTINGS, clean.settings, {lang:S.settings.lang, theme:S.settings.theme, welcome:false})};
   clean.threads.concat(clean.notes).forEach(x=>{ delete S.tombs[x.id]; });
   resetComposer();
   ensureInbox(); resetSigs(); ui.threadId=null; ui.showThread=false; ui.left='list'; shownThread=null; commit();
@@ -2347,7 +2357,7 @@ function syncCleanCfg(c){
   if(c.seen && typeof c.seen==='object') for(const k of Object.keys(c.seen)) if(RE_BRANCH.test(k) && /^[a-f0-9]{40}$/.test(c.seen[k])) seen[k]=c.seen[k];
   if(c.files && typeof c.files==='object') for(const k of Object.keys(c.files)){ const v=c.files[k]; if(RE_ID.test(k) && Array.isArray(v) && v.length && v.every(s=>/^[a-f0-9]{40}$/.test(s))) files[k]=v.slice(); }
   return {repo:c.repo, deviceId:c.branch.slice(3), branch:c.branch, lastSync:num(c.lastSync,0), lastAttempt:num(c.lastAttempt,0), lastError:typeof c.lastError==='string'?c.lastError.slice(0,40):null,
-    seen, files, upHash:typeof c.upHash==='string'?c.upHash:null, joined:!!c.joined, tokenAt:num(c.tokenAt,Date.now()), reread:num(c.reread,0),
+    seen, files, upHash:typeof c.upHash==='string'?c.upHash:null, joined:!!c.joined, tokenAt:num(c.tokenAt,Date.now()), reread:num(c.reread,0), skew:num(c.skew,0), skewAt:num(c.skewAt,0),
     fg:SYNC_FG[c.fg]?c.fg:'now', bg:SYNC_BG[c.bg]?c.bg:'15m'};
 }
 async function syncSaveCfg(){ try{ if(syncCfg) await Store.kvPut('sync', syncCfg); else await Store.kvDel('sync'); }catch(e){ console.warn('sync cfg', e); } }
@@ -2389,6 +2399,13 @@ const contentOf = n => JSON.stringify([n.type, n.text, n.title, n.items||[]]);
 // L = this device, R = another device. o.since: last sync (to recognise edits on both sides), o.join: first sync of this device
 function syncMerge(L, R, o){
   const now=o.now||Date.now();
+  const eL=L.epoch||null, eR=R.epoch||null;
+  // a backup was restored "everywhere" on the other device after the last one this device knows: take its data whole,
+  // this device's other notes go to the Trash (nothing lost); a joining device just merges and takes the mark
+  if(!o.join && epochNewer(eR, eL)) return syncAdopt(L, R, now);
+  // this device restored everywhere later than the other one: ignore the other's older data (it will take ours)
+  if(!o.join && epochNewer(eL, eR)) return {threads:L.threads, notes:L.notes, tombs:L.tombs||{}, epoch:eL};
+  const epoch = epochNewer(eR, eL) ? eR : eL;
   const tombs=Object.assign({}, L.tombs||{});
   for(const [id,at] of Object.entries(R.tombs||{})) if(!(tombs[id]>=at)) tombs[id]=at;
   let lThreads=L.threads, lNotes=L.notes;
@@ -2446,15 +2463,32 @@ function syncMerge(L, R, o){
   if(keep) notes=notes.map(n=>tids.has(n.threadId) ? n : Object.assign({}, n, {threadId:keep.id, updatedAt:now}));
   else notes=notes.filter(n=>tids.has(n.threadId));
   threads=threads.filter(x=>!(x.deletedAt && !notes.some(n=>n.threadId===x.id)));
-  return {threads, notes, tombs};
+  return {threads, notes, tombs, epoch};
+}
+function syncAdopt(L, R, now){
+  const cp=x=>JSON.parse(JSON.stringify(x));
+  const rIds=new Set(R.threads.concat(R.notes).map(x=>x.id));
+  const rIn=R.threads.find(x=>x.system==='inbox' && !x.deletedAt);
+  const lIn=new Set(L.threads.filter(x=>x.system==='inbox').map(x=>x.id));
+  const threads=R.threads.map(cp), notes=R.notes.map(cp);
+  const trashT=new Set();
+  L.notes.forEach(n=>{
+    if(rIds.has(n.id) || n.deletedAt) return;
+    const c=cp(n); c.deletedAt=now; c.pinned=false; c.updatedAt=now;
+    if(lIn.has(c.threadId) && rIn) c.threadId=rIn.id;          // one Inbox
+    else if(!rIds.has(c.threadId)) trashT.add(c.threadId);
+    notes.push(c);
+  });
+  L.threads.forEach(x=>{ if(trashT.has(x.id) && !rIds.has(x.id)){ const c=cp(x); c.deletedAt=c.deletedAt||now; c.pinned=false; c.updatedAt=now; threads.push(c); } });
+  return {threads, notes, tombs:Object.assign({}, R.tombs||{}), epoch:R.epoch};
 }
 
 /* ---------- the state this device uploads ---------- */
 // the JSON and a hash that tells whether it (or the attachments it lists) changed since the last upload
 // (in the stored form: a note made a moment ago and the same note after a restart give the same hash)
 async function syncStatePack(files){
-  const c=sanitizeData({threads:S.threads, notes:S.notes, tombs:S.tombs});
-  const json=JSON.stringify({app:'MemoChat', format:1, threads:c.threads, notes:c.notes, tombs:c.tombs});
+  const c=sanitizeData({threads:S.threads, notes:S.notes, tombs:S.tombs, epoch:S.epoch});
+  const json=JSON.stringify({app:'MemoChat', format:1, threads:c.threads, notes:c.notes, tombs:c.tombs, epoch:c.epoch});
   return {json, hash:await sha256hex(json+'\n'+JSON.stringify(Object.entries(files).sort()))};
 }
 // [flag][gzip or plain JSON], encrypted as record "state", base64
@@ -2559,10 +2593,10 @@ async function syncNow(manual, opt={}){
         data=JSON.parse(new TextDecoder().decode(body));
         if(!data || data.app!=='MemoChat' || !Array.isArray(data.threads) || !Array.isArray(data.notes)) throw new Error('shape');
       }catch(e){ if(e instanceof SyncError) throw e; console.warn('sync: unreadable state of', st.branch, e); damaged=true; continue; }
-      const R=sanitizeData({threads:data.threads, notes:data.notes, tombs:data.tombs});
+      const R=sanitizeData({threads:data.threads, notes:data.notes, tombs:data.tombs, epoch:data.epoch});
       clearTimeout(saveTimer); stampChanges();       // edits made while downloading count as local changes
-      const m=syncMerge({threads:S.threads, notes:S.notes, tombs:S.tombs}, R, {since:cfg.lastSync||0, join:!cfg.joined, now:Date.now()});
-      S.threads=m.threads; S.notes=m.notes; S.tombs=m.tombs; ensureInbox(); resetSigs();
+      const m=syncMerge({threads:S.threads, notes:S.notes, tombs:S.tombs, epoch:S.epoch}, R, {since:cfg.lastSync||0, join:!cfg.joined, now:clockNow()});
+      S.threads=m.threads; S.notes=m.notes; S.tombs=m.tombs; S.epoch=m.epoch; ensureInbox(); resetSigs();
       cfg.seen[st.branch]=st.csha; cfg.joined=true; changed=true;
     }
     if(changed){ await Store.save(S); render(); nativeAlarms(); }
@@ -2613,7 +2647,9 @@ async function syncNow(manual, opt={}){
       let tr;
       try{ tr=await gh(token,'POST',`${P}/git/trees`, {tree}); }
       catch(e){ if(attempt===0 && e instanceof SyncError && e.status===422) continue; throw e; }
+      const t0=Date.now();
       const cm=await gh(token,'POST',`${P}/git/commits`, {message:'MemoChat sync', tree:tr.sha, parents:[]});
+      { const sd=Date.parse(((cm&&cm.committer)||{}).date||''); if(isFinite(sd)) { cfg.skew=Math.round((t0+Date.now())/2 - sd); cfg.skewAt=Date.now(); } }
       if(ownCommit) await gh(token,'PATCH',`${P}/git/refs/heads/${cfg.branch}`, {sha:cm.sha, force:true});
       else await gh(token,'POST',`${P}/git/refs`, {ref:'refs/heads/'+cfg.branch, sha:cm.sha});
       cfg.upHash=hash;
@@ -2894,6 +2930,7 @@ function syncSettingsHTML(){
   return `<div class="section-h">${t('syncSection')}</div><div class="grp">
     <button class="it" data-act="sync-now"><span class="ic">${I.sync}</span><div class="grow">${t('syncNow')}<div class="small" id="syncLine">${esc(line)}</div>${err?`<div class="small" style="color:var(--danger)">${esc(err)}</div>`:''}${syncBgLine()}</div></button>
     ${c.lastError==='token'||old?`<button class="it" data-act="sync-token"><span class="ic">${I.edit}</span><div class="grow">${t('syncNewToken')}<div class="small">${old&&c.lastError!=='token'?t('syncTokenOld'):esc(c.repo)}</div></div></button>`:''}
+    ${Math.abs(c.skew||0)>120000?`<div class="it"><span class="ic" style="color:var(--danger)">${I.clock}</span><div class="grow">${t('syncClock', Math.round(Math.abs(c.skew)/60000), c.skew>0)}<div class="small">${t('syncClockSub')}</div></div></div>`:''}
     <div class="it wrapseg"><span class="ic">${I.clock}</span><div class="grow">${t('syncFgL')}</div><div class="seg">${Object.keys(SYNC_FG).map(k=>`<button class="${(c.fg||'now')===k?'on':''}" data-act="sync-fg" data-v="${k}">${t('syncFq')[k]}</button>`).join('')}</div></div>
     ${nativeBg()?`<div class="it wrapseg"><span class="ic">${I.clock}</span><div class="grow">${t('syncBgL')}</div><div class="seg">${Object.keys(SYNC_BG).map(k=>`<button class="${(c.bg||'15m')===k?'on':''}" data-act="sync-bg" data-v="${k}">${t('syncFq')[k]}</button>`).join('')}</div></div>`:''}
     <button class="it" data-act="sync-code"><span class="ic">${I.eye}</span><div class="grow">${t('syncCode')}<div class="small">${t('syncCodeSub')}</div></div></button>
@@ -2920,7 +2957,7 @@ document.addEventListener('click', e=>{
   applyTheme();
   await Store.init();
   const saved = await Store.load();
-  if(saved && Array.isArray(saved.threads)){ const c=sanitizeData(saved); S = {threads:c.threads, notes:c.notes, tombs:c.tombs, settings:Object.assign({}, DEFAULT_SETTINGS, c.settings)}; setTimeout(gcFiles, 8000); }
+  if(saved && Array.isArray(saved.threads)){ const c=sanitizeData(saved); S = {threads:c.threads, notes:c.notes, tombs:c.tombs, epoch:c.epoch, settings:Object.assign({}, DEFAULT_SETTINGS, c.settings)}; setTimeout(gcFiles, 8000); }
   else { S = seed(); persist(); }
   stampChanges();            // remembers the loaded state; anything purged below gets a tombstone
   ensureInbox(); purgeTrash();

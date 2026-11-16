@@ -390,7 +390,7 @@ function nativeInfo(){ try{ return JSON.parse(NATIVE.info()); }catch(e){ return 
 function b64(u8){ let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(s); }
 const DEFAULT_SETTINGS = {theme:null, lang:'en', lastBackup:null, nudgeSnooze:null, recent:[], welcome:false};
 
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.7.2';
 const DEFAULT_THREADS = [
   ['Inbox','📥','gray',{system:'inbox',pinned:true}],['Work','💼','blue'],['Home','🏠','purple'],['Shopping','🛒','pink'],['Ideas','💡','indigo'],
   ['Korean','🇰🇷','teal'],['Welsh','🏴󠁧󠁢󠁷󠁬󠁳󠁿','teal'],['Claude','✳️','slate'],['Copilot','🧭','slate'],['AI general','🤖','slate'],
@@ -2045,7 +2045,8 @@ $('#importInput').addEventListener('change', async e=>{
     if(navigator.onLine===false){ snack(t('restoreAllOffline')); return; }
     snack(t('restoreAllPrep'), null, null);
     for(let i=0; i<120 && syncBusy; i++) await new Promise(r=>setTimeout(r,500));
-    if(!await syncNow(false)){ snack(t('restoreAllFail')); return; }
+    // read every device's whole state (not only new uploads), so all of it can go to the Trash everywhere
+    if(!await syncNow(false, {reread:true})){ snack(t('restoreAllFail')); return; }
   }
   // files first; the notes are replaced only after all files are in place
   const atts=[...new Map(clean.notes.flatMap(n=>(n.attachments||[]).map(a=>[a.id,a]))).values()];
@@ -2511,7 +2512,7 @@ async function ghOnce(token, path){
   ghMemo.set(path, r); if(ghMemo.size>200) ghMemo.delete(ghMemo.keys().next().value);
   return r;
 }
-async function syncNow(manual){
+async function syncNow(manual, opt={}){
   if(!syncOn() || syncBusy) return false;
   if(Store.mode!=='idb') return false;
   syncBusy=true; syncSetProg(t('syncing')); if(ui.left==='settings') renderLeft();
@@ -2526,7 +2527,7 @@ async function syncNow(manual){
     clearTimeout(saveTimer); stampChanges(); await Store.save(S); nativeAlarms();
     // 1) what the devices have uploaded
     const refs=await gh(token,'GET',`${P}/git/matching-refs/heads/mc-`);
-    const reread = !!manual || (cfg.reread||0) < SYNC_REREAD;
+    const reread = !!manual || !!opt.reread || (cfg.reread||0) < SYNC_REREAD;
     const known=new Set(), remote=new Map(), states=[];
     let ownCommit=null;
     for(const ref of (Array.isArray(refs)?refs:[])){

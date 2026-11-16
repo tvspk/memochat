@@ -17,12 +17,14 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * Sync in the background (see SyncCore). Two jobs, both only with a network connection:
- *  - DAILY: about once a day, also when the app hasn't been opened (persisted across reboots);
+ *  - DAILY: periodic, every 15 min / 1 h / 6 h / 1 day as chosen in the app ("every" in the pack; the name stays
+ *           from 1.5), also when the app hasn't been opened (persisted across reboots);
  *  - SOON:  about a minute after the app was left (uploads what was changed, refreshes the reminders).
  * Nothing runs while the app is in the foreground: then the app syncs by itself.
  */
 public class SyncJob extends JobService {
     static final int ID_DAILY = 7101, ID_SOON = 7102;
+    static final long MIN_EVERY = 15 * 60000L;
     static final String PACK = "sync-pack.json";
 
     static volatile boolean running;
@@ -98,6 +100,9 @@ public class SyncJob extends JobService {
             // another mailbox or device branch than before: forget what was done for the old one
             if (!o.optString("repo").equals(p.getString("repo", "")) || !o.optString("branch").equals(p.getString("branch", "")))
                 p.edit().clear().putString("repo", o.optString("repo")).putString("branch", o.optString("branch")).apply();
+            // background interval chosen in the app (1.7); Android doesn't run periodic jobs more often than every 15 min
+            long every = Math.max(MIN_EVERY, Math.min(SyncCore.DAY, o.optLong("every", SyncCore.DAY)));
+            p.edit().putLong("every", every).apply();
             File tmp = new File(c.getFilesDir(), PACK + ".tmp"), f = new File(c.getFilesDir(), PACK);
             FileOutputStream out = new FileOutputStream(tmp);
             out.write(json.getBytes(StandardCharsets.UTF_8)); out.getFD().sync(); out.close();
@@ -125,10 +130,14 @@ public class SyncJob extends JobService {
         JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         if (js == null) return;
         ComponentName cn = new ComponentName(c, SyncJob.class);
-        if (js.getPendingJob(ID_DAILY) == null) {
+        long every = Math.max(MIN_EVERY, Math.min(SyncCore.DAY, prefs(c).getLong("every", SyncCore.DAY)));
+        // flex = the window at the end of each period in which Android may run it: 5 min … 4 h
+        long flex = Math.max(5 * 60000L, Math.min(4 * 3600000L, every / 4));
+        JobInfo pending = js.getPendingJob(ID_DAILY);
+        if (pending == null || pending.getIntervalMillis() != every) {
             js.schedule(new JobInfo.Builder(ID_DAILY, cn)
                     .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                    .setPeriodic(SyncCore.DAY, 4 * 3600000L)
+                    .setPeriodic(every, flex)
                     .setPersisted(true)
                     .build());
         }

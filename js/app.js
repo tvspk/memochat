@@ -82,6 +82,7 @@ const I = {
   cal: sv('<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'),
   listS: sv('<path d="M10 6h10M10 12h10M10 18h10"/><path d="M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5 2.5-2.5M3.5 18l1.5 1.5 2.5-2.5"/>',12,2.2),
   calS: sv('<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',12,2.2),
+  clock: sv('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>'),
   clockS: sv('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',12,2.2),
   bell: sv('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>'),
   gcal: sv('<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/>'),
@@ -250,7 +251,7 @@ Object.assign(T.cs,{
   backupFailed:'Zálohu se nepodařilo vytvořit.', backupDamaged:'Soubor zálohy je poškozený. Nic se nezměnilo.', backupSub:'Poznámky i přílohy (ZIP), volitelně s heslem', attachments:'Přílohy'
 });
 Object.assign(T.en,{
-  syncSection:'Sync', syncSetup:'Set up sync', syncSetupSub:'Phone and computer exchange changes, encrypted, through your private GitHub repository: shortly after each change and every few minutes while the app is open.',
+  syncSection:'Sync', syncSetup:'Set up sync', syncSetupSub:'Phone and computer exchange changes, encrypted, through your private GitHub repository: while the app is open within about half a minute, the phone also in the background.',
   syncBroken:'The sync key can’t be read on this device. Set up sync again (your notes stay).',
   syncNow:'Sync now', syncLast:d=>`Last sync: ${d}`, syncNever:'Not synced yet', syncing:'Syncing…',
   syncFiles:(i,n)=>`Downloading files ${i} / ${n}…`, syncUp:(i,n)=>`Uploading files ${i} / ${n}…`, syncDone:'Synced',
@@ -271,7 +272,7 @@ Object.assign(T.en,{
   fileNotYet:'This file hasn’t been downloaded yet. Sync again later.', aboutSync:'Sync is on: changes are stored encrypted in your private GitHub repository.'
 });
 Object.assign(T.cs,{
-  syncSection:'Synchronizace', syncSetup:'Nastavit synchronizaci', syncSetupSub:'Telefon a počítač si šifrovaně vymění změny přes tvůj soukromý repozitář na GitHubu: chvíli po každé změně a v otevřené aplikaci každých pár minut.',
+  syncSection:'Synchronizace', syncSetup:'Nastavit synchronizaci', syncSetupSub:'Telefon a počítač si šifrovaně vymění změny přes tvůj soukromý repozitář na GitHubu: v otevřené aplikaci zhruba do půl minuty, telefon i na pozadí.',
   syncBroken:'Klíč synchronizace nejde v tomto zařízení přečíst. Nastav synchronizaci znovu (poznámky zůstanou).',
   syncNow:'Synchronizovat teď', syncLast:d=>`Naposledy: ${d}`, syncNever:'Zatím nesynchronizováno', syncing:'Synchronizuji…',
   syncFiles:(i,n)=>`Stahuji soubory ${i} / ${n}…`, syncUp:(i,n)=>`Nahrávám soubory ${i} / ${n}…`, syncDone:'Synchronizováno',
@@ -292,7 +293,7 @@ Object.assign(T.cs,{
   fileNotYet:'Tento soubor se ještě nestáhl. Synchronizuj znovu později.', aboutSync:'Synchronizace je zapnutá: změny se šifrovaně ukládají do tvého soukromého repozitáře na GitHubu.'
 });
 Object.assign(T.en,{ syncBg:'Also runs in the background about once a day', syncBgLast:s=>`last ${s}` });
-Object.assign(T.cs,{ syncBg:'Běží i na pozadí, zhruba jednou denně', syncBgLast:s=>`naposledy ${s}` });
+Object.assign(T.cs,{ syncBg:'Běží i na pozadí', syncBgLast:s=>`naposledy ${s}` });
 Object.assign(T.en,{
   qrShow:'Show QR code', qrHide:'Hide QR code', qrShowHint:'On the other device tap “Scan QR code”. The code hides itself in 2 minutes.',
   qrScan:'Scan QR code', qrScanT:'Scan the pairing code',
@@ -333,6 +334,10 @@ Object.assign(T.cs,{
   restoreAllOk:'Obnoveno všude. Ostatní zařízení to převezmou při své další synchronizaci.',
   restoreAllLater:'Záloha obnovena tady. Na ostatní zařízení dorazí při další úspěšné synchronizaci.'
 });
+Object.assign(T.en,{ syncFgL:'While open', syncBgL:'In the background',
+  syncFq:{now:'Instant', '1m':'1 min', '5m':'5 min', '15m':'15 min', '1h':'1 h', '6h':'6 h', '1d':'1 day'} });
+Object.assign(T.cs,{ syncFgL:'V otevřené aplikaci', syncBgL:'Na pozadí',
+  syncFq:{now:'Ihned', '1m':'1 min', '5m':'5 min', '15m':'15 min', '1h':'1 h', '6h':'6 h', '1d':'1 den'} });
 Object.assign(T.en,{ byTime:'By time', reply:'Reply', replyTo:'Reply to', replyGone:'The original note was deleted' });
 Object.assign(T.cs,{ byTime:'Podle času', reply:'Odpovědět', replyTo:'Odpověď na', replyGone:'Původní poznámka byla smazána' });
 Object.assign(T.cs,{
@@ -385,7 +390,7 @@ function nativeInfo(){ try{ return JSON.parse(NATIVE.info()); }catch(e){ return 
 function b64(u8){ let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(s); }
 const DEFAULT_SETTINGS = {theme:null, lang:'en', lastBackup:null, nudgeSnooze:null, recent:[], welcome:false};
 
-const APP_VERSION = '1.6.1';
+const APP_VERSION = '1.7.0';
 const DEFAULT_THREADS = [
   ['Inbox','📥','gray',{system:'inbox',pinned:true}],['Work','💼','blue'],['Home','🏠','purple'],['Shopping','🛒','pink'],['Ideas','💡','indigo'],
   ['Korean','🇰🇷','teal'],['Welsh','🏴󠁧󠁢󠁷󠁬󠁳󠁿','teal'],['Claude','✳️','slate'],['Copilot','🧭','slate'],['AI general','🤖','slate'],
@@ -2056,6 +2061,8 @@ $('#importInput').addEventListener('change', async e=>{
   clean.threads.concat(clean.notes).forEach(x=>{ delete S.tombs[x.id]; });
   resetComposer();
   ensureInbox(); resetSigs(); ui.threadId=null; ui.showThread=false; ui.left='list'; shownThread=null; commit();
+  // the data was replaced: what was merged from the other devices before no longer counts, read their states again
+  if(syncOn()){ syncCfg.seen={}; await syncSaveCfg(); }
   if(everywhere){ snack(t('restoreAllSync'), null, null); await Store.save(S); const ok=await syncNow(false); snack(ok ? t('restoreAllOk') : t('restoreAllLater'), null, null, 9000); }
   else snack(t('restoredOk'));
   gcFiles();
@@ -2260,8 +2267,11 @@ const SYNC_WORDS = 'abandon ability able about above absent absorb abstract absu
 const SYNC_API = 'https://api.github.com';
 const SYNC_META = 'memochat-sync.json';
 const SYNC_PART = 8*1024*1024;            // attachment piece size (GitHub accepts blobs up to 100 MB)
-const SYNC_SOON  = 30000;                 // upload this long after the last change (while the app is open)
-const SYNC_POLL  = 5*60000;               // look for other devices' changes this often while the app is open
+// how often, chosen in Settings (per device, not synced): while the app is open, and Android in the background
+const SYNC_FG = {now:{soon:5000, poll:30000}, '1m':{soon:30000, poll:60000}, '5m':{soon:30000, poll:5*60000}, '15m':{soon:30000, poll:15*60000}};
+const SYNC_BG = {'15m':15*60000, '1h':3600000, '6h':6*3600000, '1d':DAY};     // Android: 15 min is the shortest it allows
+const syncFg = () => SYNC_FG[(syncCfg && syncCfg.fg) || 'now'] || SYNC_FG.now;
+const syncBgEvery = () => SYNC_BG[(syncCfg && syncCfg.bg) || '15m'] || SYNC_BG['15m'];
 const SYNC_AGAIN = 60000;                 // coming back to the app syncs if the last try is at least this old
 const SYNC_RETRY = 30*60000;              // after a failed attempt, wait before trying again automatically
 const SYNC_STALE = 300*DAY;               // ignore devices that have not synced for this long
@@ -2333,7 +2343,8 @@ function syncCleanCfg(c){
   if(c.seen && typeof c.seen==='object') for(const k of Object.keys(c.seen)) if(RE_BRANCH.test(k) && /^[a-f0-9]{40}$/.test(c.seen[k])) seen[k]=c.seen[k];
   if(c.files && typeof c.files==='object') for(const k of Object.keys(c.files)){ const v=c.files[k]; if(RE_ID.test(k) && Array.isArray(v) && v.length && v.every(s=>/^[a-f0-9]{40}$/.test(s))) files[k]=v.slice(); }
   return {repo:c.repo, deviceId:c.branch.slice(3), branch:c.branch, lastSync:num(c.lastSync,0), lastAttempt:num(c.lastAttempt,0), lastError:typeof c.lastError==='string'?c.lastError.slice(0,40):null,
-    seen, files, upHash:typeof c.upHash==='string'?c.upHash:null, joined:!!c.joined, tokenAt:num(c.tokenAt,Date.now())};
+    seen, files, upHash:typeof c.upHash==='string'?c.upHash:null, joined:!!c.joined, tokenAt:num(c.tokenAt,Date.now()),
+    fg:SYNC_FG[c.fg]?c.fg:'now', bg:SYNC_BG[c.bg]?c.bg:'15m'};
 }
 async function syncSaveCfg(){ try{ if(syncCfg) await Store.kvPut('sync', syncCfg); else await Store.kvDel('sync'); }catch(e){ console.warn('sync cfg', e); } }
 
@@ -2456,8 +2467,12 @@ async function syncSealState(key, json){
    remembers that the app should sync as soon as it is opened. Notes are merged only here, in the app. */
 const nativeBg = () => !!(NATIVE && NATIVE.syncPrepare && NATIVE.syncBgInfo);
 let bgHanding=false;
-async function syncHandOver(){
+let handKey='';
+async function syncHandOver(always=true){
   if(!nativeBg() || !syncOn() || !syncKey || bgHanding || syncBusy) return;
+  // after a sync: only if what the job works with changed (own upload, merged devices, interval, language)
+  const key=JSON.stringify([syncCfg.upHash, syncCfg.seen, syncCfg.bg, S.settings.lang]);
+  if(!always && key===handKey) return;
   bgHanding=true;
   try{
     clearTimeout(saveTimer); stampChanges(); await Store.save(S);
@@ -2468,7 +2483,8 @@ async function syncHandOver(){
     const state=await syncSealState(syncKey, json);
     if(syncCfg!==cfg) return;
     NATIVE.syncPrepare(JSON.stringify({repo:cfg.repo, branch:cfg.branch, hash, upHash:cfg.upHash, state, files, seen:cfg.seen,
-      lang:S.settings.lang, photoMsg:t('photoMsg'), allDay:t('allDay')}));
+      lang:S.settings.lang, photoMsg:t('photoMsg'), allDay:t('allDay'), every:syncBgEvery()}));
+    handKey=key;
   }catch(e){ console.warn('sync hand-over', e); }
   finally{ bgHanding=false; }
 }
@@ -2484,6 +2500,14 @@ function syncBgInfo(){
 
 /* ---------- one sync run ---------- */
 function syncSetProg(s){ syncProg=s; const el=$('#syncLine'); if(el) el.textContent=s; }
+// GET of a commit or tree by its sha: the answer never changes, so a check with nothing new costs one request (the refs)
+const ghMemo=new Map();
+async function ghOnce(token, path){
+  if(ghMemo.has(path)) return ghMemo.get(path);
+  const r=await gh(token,'GET',path);
+  ghMemo.set(path, r); if(ghMemo.size>200) ghMemo.delete(ghMemo.keys().next().value);
+  return r;
+}
 async function syncNow(manual){
   if(!syncOn() || syncBusy) return false;
   if(Store.mode!=='idb') return false;
@@ -2505,10 +2529,10 @@ async function syncNow(manual){
       const branch=String(ref.ref||'').replace(/^refs\/heads\//,''), csha=ref.object && ref.object.sha;
       if(!RE_BRANCH.test(branch) || !/^[a-f0-9]{40}$/.test(csha||'')) continue;
       const own = branch===cfg.branch; if(own) ownCommit=csha;
-      const c=await gh(token,'GET',`${P}/git/commits/${csha}`);
+      const c=await ghOnce(token,`${P}/git/commits/${csha}`);
       if(!own && Date.parse((c.committer||{}).date||0) < Date.now()-SYNC_STALE) continue;
       const tsha=c && c.tree && c.tree.sha; if(!/^[a-f0-9]{40}$/.test(tsha||'')) throw new SyncError('http', 0, 'tree');
-      const tr=await gh(token,'GET',`${P}/git/trees/${tsha}`);
+      const tr=await ghOnce(token,`${P}/git/trees/${tsha}`);
       let stateSha=null; const parts=new Map();
       for(const e of (Array.isArray(tr.tree)?tr.tree:[])){
         if(e.type!=='blob' || !/^[a-f0-9]{40}$/.test(e.sha||'')) continue;
@@ -2599,7 +2623,7 @@ async function syncNow(manual){
     if(syncCfg===cfg) await syncSaveCfg();
     if(ui.left==='settings') renderLeft();
   }
-  if(ok) setTimeout(syncHandOver, 0);          // the background job starts from the merged state
+  if(ok) setTimeout(()=>syncHandOver(false), 0);   // the background job starts from the merged state
   if(ok && manual) snack(damaged ? t('syncErrDamaged') : t('syncDone'));
   else if(!ok && (manual || ['token','notfound','forbidden','public'].includes(cfg.lastError)))
     snack(syncErrText(cfg.lastError), manual || ui.left==='settings' ? null : t('settings'), ()=>goLeft('settings'), 10000);
@@ -2615,8 +2639,8 @@ function syncErrText(k){
   if(k.startsWith('http')) return t('syncErrHttp', k.slice(5)||'?');
   return t('syncErrOther');
 }
-// automatic: when the app opens or comes back, every SYNC_POLL while it is open, and SYNC_SOON after a change.
-// After a failure: wait SYNC_POLL (offline, server) or SYNC_RETRY (token or repository problem, which shows a message).
+// automatic: when the app opens or comes back, every syncFg().poll while it is open, and syncFg().soon after a change.
+// After a failure: wait at least 5 min (offline, server) or SYNC_RETRY (token or repository problem, which shows a message).
 function syncHardErr(){ return ['token','notfound','forbidden','public'].includes(syncCfg && syncCfg.lastError); }
 function syncMaybe(gap=SYNC_AGAIN){
   if(!syncOn() || syncBusy || navigator.onLine===false) return;
@@ -2624,7 +2648,7 @@ function syncMaybe(gap=SYNC_AGAIN){
   if(bg && bg.busy){ setTimeout(()=>syncMaybe(gap), 5000); return; }
   // the background job found changes from another device that aren't merged yet
   if(bg && num(bg.newsAt,0) > (syncCfg.lastSync||0) && now-(syncCfg.lastAttempt||0) >= 60000){ syncNow(false); return; }
-  const wait = syncHardErr() ? SYNC_RETRY : syncCfg.lastError ? Math.max(gap, SYNC_POLL) : gap;
+  const wait = syncHardErr() ? SYNC_RETRY : syncCfg.lastError ? Math.max(gap, 5*60000) : gap;
   if(now-(syncCfg.lastAttempt||0) < wait) return;
   syncNow(false);
 }
@@ -2638,7 +2662,7 @@ function syncSoon(){
     if(document.visibilityState==='hidden' && nativeBg()) return;        // the background job takes it from here
     if(syncBusy){ syncSoonT=setTimeout(go, 5000); return; }
     syncNow(false);
-  }, SYNC_SOON);
+  }, syncFg().soon);
 }
 async function syncBoot(){
   if(Store.mode!=='idb') return;
@@ -2646,9 +2670,9 @@ async function syncBoot(){
   if(syncCfg){ syncSec=await syncSecretLoad(); if(syncSec){ try{ syncKey=await syncDeriveKey(syncSec.code); }catch(e){ syncKey=null; } } }
   if(ui.left==='settings') renderLeft();
   setTimeout(()=>syncMaybe(), 3000);
-  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') setTimeout(()=>syncMaybe(), 1500); else syncHandOver(); });
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') setTimeout(()=>syncMaybe(), 1500); else syncHandOver(true); });
   window.addEventListener('online', ()=>setTimeout(()=>syncMaybe(), 3000));
-  setInterval(()=>{ if(document.visibilityState==='visible') syncMaybe(SYNC_POLL); }, 30000);
+  setInterval(()=>{ if(document.visibilityState==='visible') syncMaybe(syncFg().poll - 2000); }, 10000);
 }
 
 /* ---------- setting up, pairing code, disconnecting ---------- */
@@ -2700,7 +2724,7 @@ function syncSetup(){
 async function syncConnect(token, repo, code){
   if(!await syncSecretSave({token, code})){ snack(t('syncErrOther')); return; }
   const dev=[...crypto.getRandomValues(new Uint8Array(6))].map(b=>b.toString(16).padStart(2,'0')).join('');
-  syncCfg={repo, deviceId:dev, branch:'mc-'+dev, lastSync:0, lastAttempt:0, lastError:null, seen:{}, files:{}, upHash:null, joined:false, tokenAt:Date.now()};
+  syncCfg={repo, deviceId:dev, branch:'mc-'+dev, lastSync:0, lastAttempt:0, lastError:null, seen:{}, files:{}, upHash:null, joined:false, tokenAt:Date.now(), fg:'now', bg:'15m'};
   syncSec={token, code}; syncKey=await syncDeriveKey(code);
   await syncSaveCfg();
   if(ui.left==='settings') renderLeft();
@@ -2863,6 +2887,8 @@ function syncSettingsHTML(){
   return `<div class="section-h">${t('syncSection')}</div><div class="grp">
     <button class="it" data-act="sync-now"><span class="ic">${I.sync}</span><div class="grow">${t('syncNow')}<div class="small" id="syncLine">${esc(line)}</div>${err?`<div class="small" style="color:var(--danger)">${esc(err)}</div>`:''}${syncBgLine()}</div></button>
     ${c.lastError==='token'||old?`<button class="it" data-act="sync-token"><span class="ic">${I.edit}</span><div class="grow">${t('syncNewToken')}<div class="small">${old&&c.lastError!=='token'?t('syncTokenOld'):esc(c.repo)}</div></div></button>`:''}
+    <div class="it wrapseg"><span class="ic">${I.clock}</span><div class="grow">${t('syncFgL')}</div><div class="seg">${Object.keys(SYNC_FG).map(k=>`<button class="${(c.fg||'now')===k?'on':''}" data-act="sync-fg" data-v="${k}">${t('syncFq')[k]}</button>`).join('')}</div></div>
+    ${nativeBg()?`<div class="it wrapseg"><span class="ic">${I.clock}</span><div class="grow">${t('syncBgL')}</div><div class="seg">${Object.keys(SYNC_BG).map(k=>`<button class="${(c.bg||'15m')===k?'on':''}" data-act="sync-bg" data-v="${k}">${t('syncFq')[k]}</button>`).join('')}</div></div>`:''}
     <button class="it" data-act="sync-code"><span class="ic">${I.eye}</span><div class="grow">${t('syncCode')}<div class="small">${t('syncCodeSub')}</div></div></button>
     <button class="it" data-act="sync-off"><span class="ic">${I.x}</span><div class="grow">${t('syncOff')}<div class="small">${t('syncOffSub', esc(c.repo))}</div></div></button>
   </div>`;
@@ -2872,6 +2898,8 @@ document.addEventListener('click', e=>{
   const act=a.dataset.act;
   if(act==='sync-setup') return syncSetup();
   if(act==='sync-now') return syncNow(true);
+  if(act==='sync-fg' && syncCfg && SYNC_FG[a.dataset.v]){ syncCfg.fg=a.dataset.v; syncSaveCfg(); renderLeft(); return; }
+  if(act==='sync-bg' && syncCfg && SYNC_BG[a.dataset.v]){ syncCfg.bg=a.dataset.v; syncSaveCfg(); renderLeft(); syncHandOver(true); return; }
   if(act==='sync-token') return syncOn() && syncNewToken();
   if(act==='sync-code') return syncOn() && syncShowCode(syncSec.code, false);
   if(act==='sync-off') return syncDisconnect();

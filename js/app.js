@@ -315,6 +315,24 @@ Object.assign(T.en,{
   tasks:'Tasks', next7:'Next 7 days', noDate:'No date', byDate:'By date', byPri:'By priority', doneOne:'Marked as done',
   noTasks:'Nothing to do', noTasksSub:'Here you see unfinished checklists, notes with a date and notes of higher priority from all threads.'
 });
+Object.assign(T.en,{
+  restoreScope:'Restore on other devices too?', restoreScopeSub:'Sync is on. "Only here": the other devices keep their newer notes and send them back. "Everywhere": the backup replaces the data on all devices; what isn’t in it goes to the Trash (30 days), newer texts of its notes go to their history.',
+  restoreHere:'Only here', restoreAll:'Everywhere',
+  restoreAllPrep:'Syncing first…', restoreAllOffline:'Restoring everywhere needs the internet. Connect and try again.',
+  restoreAllFail:'Sync failed, nothing was restored. Check Sync in Backup & settings and try again.',
+  restoreAllSync:'Backup restored, sending it to the other devices…',
+  restoreAllOk:'Restored everywhere. The other devices take it over at their next sync.',
+  restoreAllLater:'Backup restored here. It goes to the other devices at the next successful sync.'
+});
+Object.assign(T.cs,{
+  restoreScope:'Obnovit i na ostatních zařízeních?', restoreScopeSub:'Synchronizace je zapnutá. „Jen tady“: ostatní zařízení si nechají novější poznámky a pošlou je zpět. „Všude“: záloha nahradí data na všech zařízeních; co v ní není, půjde do Koše (30 dní), novější texty jejích poznámek do jejich historie.',
+  restoreHere:'Jen tady', restoreAll:'Všude',
+  restoreAllPrep:'Nejdřív synchronizuju…', restoreAllOffline:'Obnova všude potřebuje internet. Připoj se a zkus to znovu.',
+  restoreAllFail:'Synchronizace se nepovedla, nic se neobnovilo. Zkontroluj Synchronizaci v Záloze a nastavení a zkus to znovu.',
+  restoreAllSync:'Záloha obnovena, posílám ji ostatním zařízením…',
+  restoreAllOk:'Obnoveno všude. Ostatní zařízení to převezmou při své další synchronizaci.',
+  restoreAllLater:'Záloha obnovena tady. Na ostatní zařízení dorazí při další úspěšné synchronizaci.'
+});
 Object.assign(T.en,{ byTime:'By time', reply:'Reply', replyTo:'Reply to', replyGone:'The original note was deleted' });
 Object.assign(T.cs,{ byTime:'Podle času', reply:'Odpovědět', replyTo:'Odpověď na', replyGone:'Původní poznámka byla smazána' });
 Object.assign(T.cs,{
@@ -367,7 +385,7 @@ function nativeInfo(){ try{ return JSON.parse(NATIVE.info()); }catch(e){ return 
 function b64(u8){ let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(s); }
 const DEFAULT_SETTINGS = {theme:null, lang:'en', lastBackup:null, nudgeSnooze:null, recent:[], welcome:false};
 
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.6.1';
 const DEFAULT_THREADS = [
   ['Inbox','📥','gray',{system:'inbox',pinned:true}],['Work','💼','blue'],['Home','🏠','purple'],['Shopping','🛒','pink'],['Ideas','💡','indigo'],
   ['Korean','🇰🇷','teal'],['Welsh','🏴󠁧󠁢󠁷󠁬󠁳󠁿','teal'],['Claude','✳️','slate'],['Copilot','🧭','slate'],['AI general','🤖','slate'],
@@ -1312,6 +1330,43 @@ function sheet(title, items, sub, onDismiss){
     closeOverlay(ov); it.fn(); });
   return ov;
 }
+// restoring with sync on: 'here' | 'all' | null (cancelled)
+function restoreScopeDlg(){
+  return new Promise(res=>{
+    const ov=overlay(`<div class="dlg" role="alertdialog"><h3>${esc(t('restoreScope'))}</h3><p>${esc(t('restoreScopeSub'))}</p>
+      <div class="btns" style="flex-wrap:wrap"><button class="btn" data-x="no">${t('cancel')}</button><button class="btn" data-x="here">${esc(t('restoreHere'))}</button><button class="btn primary danger" data-x="all">${esc(t('restoreAll'))}</button></div></div>`, true, ()=>res(null));
+    ov.addEventListener('click',e=>{ const x=e.target.closest('[data-x]'); if(!x) return; closeOverlay(ov); res(x.dataset.x==='no'?null:x.dataset.x); });
+  });
+}
+/* "Restore everywhere": the backup becomes the newest change on every device. `clean` (the backup) is changed in place:
+   - its threads and notes get updatedAt = now, so they win over every other device's version;
+   - a newer text of a note this device knows goes to that note's history (nothing is lost for good);
+   - everything this device knows (after a sync, i.e. from all devices) that isn't in the backup goes to the Trash with
+     updatedAt = now, so the other devices put it in the Trash as well (30 days, can be put back);
+   - the backup's Inbox takes this device's Inbox id, so there is still one Inbox. */
+function restoreEverywhere(clean, prev, now){
+  const curIn=prev.threads.find(x=>x.system==='inbox' && !x.deletedAt), bIn=clean.threads.find(x=>x.system==='inbox' && !x.deletedAt);
+  if(curIn && bIn && curIn.id!==bIn.id && !clean.threads.some(x=>x.id===curIn.id)){
+    const old=bIn.id; bIn.id=curIn.id; clean.notes.forEach(n=>{ if(n.threadId===old) n.threadId=curIn.id; });
+  }
+  const prevNote=new Map(prev.notes.map(n=>[n.id,n]));
+  clean.threads.forEach(x=>{ x.updatedAt=now; });
+  clean.notes.forEach(n=>{
+    n.updatedAt=now;
+    const o=prevNote.get(n.id);
+    if(o && contentOf(o)!==contentOf(n)){
+      const hist=new Map((n.history||[]).concat(o.history||[]).map(v=>[histKey(v),v]));
+      const v={type:o.type, text:o.text, title:o.title, items:JSON.parse(JSON.stringify(o.items||[])), at:o.editedAt||o.createdAt};
+      hist.set(histKey(v), v);
+      n.history=[...hist.values()].sort((a,b)=>a.at-b.at || (histKey(a)<histKey(b)?-1:1));
+      if(!n.editedAt) n.editedAt=n.createdAt;
+    }
+  });
+  const keep=new Set(clean.threads.concat(clean.notes).map(x=>x.id));
+  const cp=x=>JSON.parse(JSON.stringify(x));
+  prev.notes.forEach(n=>{ if(keep.has(n.id)) return; const c=cp(n); if(!c.deletedAt){ c.deletedAt=now; c.pinned=false; c.updatedAt=now; } clean.notes.push(c); });
+  prev.threads.forEach(x=>{ if(keep.has(x.id)) return; const c=cp(x); if(!c.deletedAt){ c.deletedAt=now; c.pinned=false; c.updatedAt=now; } clean.threads.push(c); });
+}
 function confirmDlg(title, text, okLabel, danger){
   return new Promise(res=>{
     const ov=overlay(`<div class="dlg" role="alertdialog"><h3>${esc(title)}</h3><p>${esc(text)}</p><div class="btns"><button class="btn" data-x="no">${t('cancel')}</button><button class="btn primary ${danger?'danger':''}" data-x="yes">${esc(okLabel)}</button></div></div>`, true, ()=>res(false));
@@ -1974,6 +2029,19 @@ $('#importInput').addEventListener('change', async e=>{
   if(!data || !Array.isArray(data.threads) || !Array.isArray(data.notes)){ snack(t('badFile')); return; }
   const clean = sanitizeData(data);
   if(!await confirmDlg(t('restoreFile'), t('confirmRestore', clean.threads.filter(x=>!x.deletedAt).length, clean.notes.filter(n=>!n.deletedAt).length), t('restore'), true)) return;
+  // with sync on: only here (the other devices keep their newer data and send it back), or everywhere
+  let everywhere=false;
+  if(syncOn()){
+    const sc=await restoreScopeDlg(); if(!sc) return;
+    everywhere = sc==='all';
+  }
+  if(everywhere){
+    // first get everything the other devices have, so it can be put in the Trash on all of them
+    if(navigator.onLine===false){ snack(t('restoreAllOffline')); return; }
+    snack(t('restoreAllPrep'), null, null);
+    for(let i=0; i<120 && syncBusy; i++) await new Promise(r=>setTimeout(r,500));
+    if(!await syncNow(false)){ snack(t('restoreAllFail')); return; }
+  }
   // files first; the notes are replaced only after all files are in place
   const atts=[...new Map(clean.notes.flatMap(n=>(n.attachments||[]).map(a=>[a.id,a]))).values()];
   for(let i=0;i<atts.length;i++){
@@ -1982,11 +2050,14 @@ $('#importInput').addEventListener('change', async e=>{
     try{ blob=await b.fileOf(atts[i].id, atts[i].type); }catch(err){ console.warn('backup damaged', err); snack(t('backupDamaged')); return; }
     try{ if(blob) await Store.putFile(atts[i].id, blob); }catch(err){ console.warn('restore file failed', err); snack(t('fileSaveFail')); return; }
   }
+  if(everywhere) restoreEverywhere(clean, S, Date.now());
   // tombstones stay (they belong to this device's sync history, backups don't carry them)
   S = {threads:clean.threads, notes:clean.notes, tombs:S.tombs||{}, settings:Object.assign({}, DEFAULT_SETTINGS, clean.settings, {lang:S.settings.lang, theme:S.settings.theme, welcome:false})};
   clean.threads.concat(clean.notes).forEach(x=>{ delete S.tombs[x.id]; });
   resetComposer();
-  ensureInbox(); resetSigs(); ui.threadId=null; ui.showThread=false; ui.left='list'; shownThread=null; commit(); snack(t('restoredOk'));
+  ensureInbox(); resetSigs(); ui.threadId=null; ui.showThread=false; ui.left='list'; shownThread=null; commit();
+  if(everywhere){ snack(t('restoreAllSync'), null, null); await Store.save(S); const ok=await syncNow(false); snack(ok ? t('restoreAllOk') : t('restoreAllLater'), null, null, 9000); }
+  else snack(t('restoredOk'));
   gcFiles();
 });
 function exportMarkdown(){

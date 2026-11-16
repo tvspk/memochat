@@ -390,7 +390,7 @@ function nativeInfo(){ try{ return JSON.parse(NATIVE.info()); }catch(e){ return 
 function b64(u8){ let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(s); }
 const DEFAULT_SETTINGS = {theme:null, lang:'en', lastBackup:null, nudgeSnooze:null, recent:[], welcome:false};
 
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.7.1';
 const DEFAULT_THREADS = [
   ['Inbox','📥','gray',{system:'inbox',pinned:true}],['Work','💼','blue'],['Home','🏠','purple'],['Shopping','🛒','pink'],['Ideas','💡','indigo'],
   ['Korean','🇰🇷','teal'],['Welsh','🏴󠁧󠁢󠁷󠁬󠁳󠁿','teal'],['Claude','✳️','slate'],['Copilot','🧭','slate'],['AI general','🤖','slate'],
@@ -2274,6 +2274,9 @@ const syncFg = () => SYNC_FG[(syncCfg && syncCfg.fg) || 'now'] || SYNC_FG.now;
 const syncBgEvery = () => SYNC_BG[(syncCfg && syncCfg.bg) || '15m'] || SYNC_BG['15m'];
 const SYNC_AGAIN = 60000;                 // coming back to the app syncs if the last try is at least this old
 const SYNC_RETRY = 30*60000;              // after a failed attempt, wait before trying again automatically
+// 1.7.1: before 1.7.0 a device that restored a backup never read the other devices' states again (until they uploaded
+// something new), so devices could stay apart for good. Every device reads all states once more after the update.
+const SYNC_REREAD = 1;
 const SYNC_STALE = 300*DAY;               // ignore devices that have not synced for this long
 const RE_REPO = /^[A-Za-z0-9-]{1,39}\/[A-Za-z0-9._-]{1,100}$/;
 const RE_BRANCH = /^mc-[a-f0-9]{12}$/;
@@ -2343,7 +2346,7 @@ function syncCleanCfg(c){
   if(c.seen && typeof c.seen==='object') for(const k of Object.keys(c.seen)) if(RE_BRANCH.test(k) && /^[a-f0-9]{40}$/.test(c.seen[k])) seen[k]=c.seen[k];
   if(c.files && typeof c.files==='object') for(const k of Object.keys(c.files)){ const v=c.files[k]; if(RE_ID.test(k) && Array.isArray(v) && v.length && v.every(s=>/^[a-f0-9]{40}$/.test(s))) files[k]=v.slice(); }
   return {repo:c.repo, deviceId:c.branch.slice(3), branch:c.branch, lastSync:num(c.lastSync,0), lastAttempt:num(c.lastAttempt,0), lastError:typeof c.lastError==='string'?c.lastError.slice(0,40):null,
-    seen, files, upHash:typeof c.upHash==='string'?c.upHash:null, joined:!!c.joined, tokenAt:num(c.tokenAt,Date.now()),
+    seen, files, upHash:typeof c.upHash==='string'?c.upHash:null, joined:!!c.joined, tokenAt:num(c.tokenAt,Date.now()), reread:num(c.reread,0),
     fg:SYNC_FG[c.fg]?c.fg:'now', bg:SYNC_BG[c.bg]?c.bg:'15m'};
 }
 async function syncSaveCfg(){ try{ if(syncCfg) await Store.kvPut('sync', syncCfg); else await Store.kvDel('sync'); }catch(e){ console.warn('sync cfg', e); } }
@@ -2523,6 +2526,7 @@ async function syncNow(manual){
     clearTimeout(saveTimer); stampChanges(); await Store.save(S); nativeAlarms();
     // 1) what the devices have uploaded
     const refs=await gh(token,'GET',`${P}/git/matching-refs/heads/mc-`);
+    const reread = !!manual || (cfg.reread||0) < SYNC_REREAD;
     const known=new Set(), remote=new Map(), states=[];
     let ownCommit=null;
     for(const ref of (Array.isArray(refs)?refs:[])){
@@ -2541,7 +2545,8 @@ async function syncNow(manual){
         const m=RE_PART.exec(e.path||''); if(m){ const a=parts.get(m[1])||[]; a[+m[2]]=e.sha; parts.set(m[1], a); }
       }
       for(const [id,a] of parts) if(!remote.has(id) && a.length && a.every(Boolean)) remote.set(id, a);
-      if(!own && stateSha && cfg.seen[branch]!==csha) states.push({branch, csha, sha:stateSha});
+      // normally only new uploads; "Sync now" and the first sync after SYNC_REREAD grows read every device again
+      if(!own && stateSha && (reread || cfg.seen[branch]!==csha)) states.push({branch, csha, sha:stateSha});
     }
     // 2) merge the other devices' states
     let changed=false;
@@ -2614,6 +2619,7 @@ async function syncNow(manual){
       break;
     }
     cfg.joined=true; cfg.lastSync=Date.now(); cfg.lastError=damaged?'damaged':null; ok=true;
+    if(!damaged) cfg.reread=SYNC_REREAD;
   }catch(e){
     console.warn('sync failed', e);
     cfg.lastError = e instanceof SyncError ? e.kind : 'other';

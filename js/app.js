@@ -292,7 +292,7 @@ Object.assign(T.cs,{
   syncErrDamaged:'Část synchronizovaných dat nešla přečíst. Zbytek se synchronizoval.', syncErrHttp:s=>`GitHub požadavek odmítl (${s}). Zkus to později.`, syncErrOther:'Synchronizace se nepovedla. Zkus to později.',
   fileNotYet:'Tento soubor se ještě nestáhl. Synchronizuj znovu později.', aboutSync:'Synchronizace je zapnutá: změny se šifrovaně ukládají do tvého soukromého repozitáře na GitHubu.'
 });
-Object.assign(T.en,{ syncBg:'Also runs in the background about once a day', syncBgLast:s=>`last ${s}` });
+Object.assign(T.en,{ syncBg:'Also runs in the background', syncBgLast:s=>`last ${s}` });
 Object.assign(T.cs,{ syncBg:'Běží i na pozadí', syncBgLast:s=>`naposledy ${s}` });
 Object.assign(T.en,{
   qrShow:'Show QR code', qrHide:'Hide QR code', qrShowHint:'On the other device tap “Scan QR code”. The code hides itself in 2 minutes.',
@@ -390,7 +390,7 @@ function nativeInfo(){ try{ return JSON.parse(NATIVE.info()); }catch(e){ return 
 function b64(u8){ let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(s); }
 const DEFAULT_SETTINGS = {theme:null, lang:'en', lastBackup:null, nudgeSnooze:null, recent:[], welcome:false};
 
-const APP_VERSION = '1.7.2';
+const APP_VERSION = '1.7.3';
 const DEFAULT_THREADS = [
   ['Inbox','📥','gray',{system:'inbox',pinned:true}],['Work','💼','blue'],['Home','🏠','purple'],['Shopping','🛒','pink'],['Ideas','💡','indigo'],
   ['Korean','🇰🇷','teal'],['Welsh','🏴󠁧󠁢󠁷󠁬󠁳󠁿','teal'],['Claude','✳️','slate'],['Copilot','🧭','slate'],['AI general','🤖','slate'],
